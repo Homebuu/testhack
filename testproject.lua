@@ -139,7 +139,7 @@ local function handlePlayerESP(v)
     if v.Character then addESP() end
     v.CharacterAdded:Connect(addESP)
 end
-
+for _, p in pairs(Players:GetPlayers()) do handlePlayerESP(p) end
 -- [[ RunService Loop ]] --
 RunService.RenderStepped:Connect(function()
 	if not (espSettings.Names or espSettings.Boxes or espSettings.Lines) then 
@@ -445,11 +445,6 @@ PlayerVisible:Toggle({
     Value = false,
     Callback = function(state) 
 		espSettings.Names = state 
-		if state then
-            for _, p in pairs(Players:GetPlayers()) do 
-                handlePlayerESP(p) 
-            end
-        end
 	end
 })
 PlayerVisible:Toggle({
