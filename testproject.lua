@@ -61,6 +61,9 @@ local highlight = nil
 local flingEnabled = false
 local orbitAngle = 0
 
+local roleConnection = nil
+local playerData = {}
+
 -- [[ ESP Variables ]] --
 local espSettings = { Names = false, Boxes = false, Lines = false, Color = Color3.fromRGB(255, 255, 255) }
 local espCache = {} -- ใช้ Table เดียวเก็บข้อมูลเพื่อความลื่น
@@ -234,6 +237,8 @@ local MainTab = Window:Tab({ Title = "เมนูหลัก", Icon = "star" }
 local TeleportTab = Window:Tab({ Title = "เทเลพอร์ต", Icon = "navigation" })
 local PlayerVisible = Window:Tab({ Title = "การมองเห็น", Icon = "eye" }) 
 local FlingLuck = Window:Tab({ Title = "ฟังก์ชั่นเถื่อน", Icon = "geist:warning" }) 
+
+local murderermystery2 = Window:Tab({ Title = "MM2", Icon = "geist:slash-forward" }) 
 
 local discordBTN = Window:Tab({ Title = "Discord Server", Icon = "geist:discord" }) 
 
@@ -575,6 +580,89 @@ discordBTN:Button({
                 }
             }
         })
+    end
+})
+
+-- [[ function ]] -- 
+local function applyHighlight(targetPlayer, role)
+    local char = targetPlayer.Character
+    if not char then return end
+
+    local highlight = char:FindFirstChild("RoleHighlight")
+    if not highlight then
+        highlight = Instance.new("Highlight")
+        highlight.Name = "RoleHighlight"
+        highlight.Parent = char
+    end
+
+    if role == "Murderer" then
+        highlight.FillColor = Color3.fromRGB(255, 0, 0) 
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    elseif role == "Sheriff" then
+        highlight.FillColor = Color3.fromRGB(0, 0, 255) 
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    end
+    
+    highlight.FillOpacity = 0.5 
+    highlight.OutlineOpacity = 1
+    highlight.Enabled = _G.ShowRolesMM2
+end
+local function checkAndHighlightAll()
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v == game.Players.LocalPlayer then continue end
+        
+        local role = nil
+        if playerData[v.Name] then
+            role = playerData[v.Name].Role
+        end
+        
+        if not role then
+            local char = v.Character
+            local bp = v:FindFirstChild("Backpack")
+            if (bp and bp:FindFirstChild("Knife")) or (char and char:FindFirstChild("Knife")) then
+                role = "Murderer"
+            elseif (bp and bp:FindFirstChild("Gun")) or (char and char:FindFirstChild("Gun")) then
+                role = "Sheriff"
+            end
+        end
+
+        if role == "Murderer" or role == "Sheriff" then
+            applyHighlight(v, role)
+        else
+            local h = v.Character and v.Character:FindFirstChild("RoleHighlight")
+            if h then h:Destroy() end
+        end
+    end
+end
+
+murderermystery2:Toggle({
+    Title = "แสดงบทบาทของผู้เล่น (Chams)",
+    Desc = "ตัวแดง = Murderer | ตัวน้ำเงิน = Sheriff",
+    Value = false,
+    Callback = function(state)
+        _G.ShowRolesMM2 = state
+        
+        if state then
+            local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("PlayerDataChanged")
+            roleConnection = remote.OnClientEvent:Connect(function(data)
+                playerData = data
+                checkAndHighlightAll() 
+            end)
+            
+            task.spawn(function()
+                while _G.ShowRolesMM2 do
+                    checkAndHighlightAll()
+                    task.wait(1) 
+                end
+            end)
+        else
+            if roleConnection then roleConnection:Disconnect() roleConnection = nil end
+            for _, v in pairs(game.Players:GetPlayers()) do
+                local h = v.Character and v.Character:FindFirstChild("RoleHighlight")
+                if h then h:Destroy() end
+            end
+            playerData = {}
+        end
     end
 })
 
