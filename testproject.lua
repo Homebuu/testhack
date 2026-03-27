@@ -117,7 +117,7 @@ RunService.Heartbeat:Connect(function()
                     if espSettings.Names then
                         drawings.Name.Visible = true
                         drawings.Name.Position = Vector2.new(headPos.X, headPos.Y - 20)
-                        drawings.Name.Text = string.format("%s [%dm]", v.DisplayName, math.floor(distance))
+                        drawings.Name.Text = string.format("%s [%dm]\n\n@%s", v.DisplayName, math.floor(distance), v.Name)
                         drawings.Name.Color = espSettings.Color
                     else drawings.Name.Visible = false end
                 end
