@@ -62,148 +62,105 @@ local flingEnabled = false
 local orbitAngle = 0
 
 -- [[ ESP Variables ]] --
-local espSettings = {
-    Names = false,
-    Distances = false,
-    Boxes = false,
-    Lines = false,
-    Color = Color3.fromRGB(255, 255, 255),
-}
-
-local espStorage = {
-    Tags = {},
-    Boxes = {},
-    Lines = {},
-}
-
-local randomName = "Part_" .. math.random(100000, 999999)
-local espFolder = Instance.new("Folder", game.CoreGui)
-espFolder.Name = randomName
+local espSettings = { Names = false, Boxes = false, Lines = false, Color = Color3.fromRGB(255, 255, 255) }
+local espCache = {} -- ใช้ Table เดียวเก็บข้อมูลเพื่อความลื่น
 
 -- [[ ESP Functions ]] --
-local function createDrawing(class, properties)
-    local drawing = Drawing.new(class)
-    for i, v in pairs(properties) do
-        drawing[i] = v
-    end
-    return drawing
+local function createESP(v)
+    if v == player or espCache[v] then return end
+    
+    local data = {}
+    
+    data.Box = Drawing.new("Square")
+    data.Box.Thickness = 1
+    data.Box.Filled = false
+    
+    data.Line = Drawing.new("Line")
+    data.Line.Thickness = 1
+    
+    data.Name = Drawing.new("Text")
+    data.Name.Size = 14
+    data.Name.Center = true
+    data.Name.Outline = true
+
+    espCache[v] = data
 end
 
-local function handlePlayerESP(v)
-    if v == player then return end
-
-    local function addESP()
-		if not espStorage.Tags[v.Name] then
-            local billboard = Instance.new("BillboardGui", espFolder)
-            billboard.Name = v.Name .. "_Tag"
-            billboard.Size = UDim2.new(0, 150, 0, 70) 
-            billboard.StudsOffset = Vector3.new(0, 3.5, 0) 
-            billboard.AlwaysOnTop = true
-            billboard.Enabled = false
-
-            local label = Instance.new("TextLabel", billboard)
-            label.BackgroundTransparency = 1
-            label.Size = UDim2.new(1, 0, 1, 0)
-            label.TextColor3 = espSettings.Color
-            label.TextStrokeTransparency = 0
-            label.TextSize = 14
-            label.Font = Enum.Font.GothamBold
-            
-            label.Text = v.DisplayName .. "\n(@" .. v.Name .. ")"
-            
-            label.TextYAlignment = Enum.TextYAlignment.Top 
-            espStorage.Tags[v.Name] = {Billboard = billboard, Label = label}
-        end
-
-        if not espStorage.Boxes[v.Name] then
-            espStorage.Boxes[v.Name] = createDrawing("Square", {
-                Color = espSettings.Color,
-                Thickness = 1,
-                Filled = false,
-                Transparency = 1,
-                Visible = false,
-            })
-        end
-
-        if not espStorage.Lines[v.Name] then
-            espStorage.Lines[v.Name] = createDrawing("Line", {
-                Color = espSettings.Color,
-                Thickness = 1,
-                Transparency = 1,
-                Visible = false,
-            })
-        end
-    end
-
-    if v.Character then addESP() end
-    v.CharacterAdded:Connect(addESP)
-end
-for _, p in pairs(Players:GetPlayers()) do handlePlayerESP(p) end
 -- [[ RunService Loop ]] --
-RunService.RenderStepped:Connect(function()
-	if not (espSettings.Names or espSettings.Boxes or espSettings.Lines) then 
-        return 
-    end
-
-    for _, v in pairs(Players:GetPlayers()) do
-        if v == player then continue end
+RunService.Heartbeat:Connect(function()
+    for v, drawings in pairs(espCache) do
         local char = v.Character
-        local tagData = espStorage.Tags[v.Name]
-        local box = espStorage.Boxes[v.Name]
-        local line = espStorage.Lines[v.Name]
-
-        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
-            local rootPart = char.HumanoidRootPart
-            local head = char.Head
-            local hrpPos, onScreen = camera:WorldToViewportPoint(rootPart.Position)
-            local distance = (player.Character and player.Character:FindFirstChild("HumanoidRootPart")) and (player.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude or 0
-
-            -- Update Names
-            if tagData then
-                if espSettings.Names and onScreen then
-                    tagData.Billboard.Adornee = rootPart
-                    tagData.Billboard.Enabled = true
-                    tagData.Label.Text = v.DisplayName .. " (" .. math.floor(distance) .. "m)\n(@" .. v.Name .. ")"
-                else
-                    tagData.Billboard.Enabled = false
-                end
-            end
-
-            -- Update Boxes
-            if box then
-                if espSettings.Boxes and onScreen then
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChild("Humanoid")
+        
+        if hrp and hum and hum.Health > 0 then
+            local pos, onScreen = camera:WorldToViewportPoint(hrp.Position)
+            
+            if onScreen then
+                local distance = (player.Character and player.Character:FindFirstChild("HumanoidRootPart")) and (player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude or 0
+                
+                -- Box & Name Logic
+                if espSettings.Boxes or espSettings.Names then
+                    local head = char:FindFirstChild("Head")
                     local headPos = camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
-                    local legPos = camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
+                    local legPos = camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
                     local height = math.abs(headPos.Y - legPos.Y)
                     local width = height * 0.6
-                    box.Size = Vector2.new(width, height)
-                    box.Position = Vector2.new(headPos.X - width / 2, headPos.Y)
-                    box.Visible = true
-                else
-                    box.Visible = false
-                end
-            end
-
-            -- Update Lines
-            if line then
-                if espSettings.Lines and onScreen then
-                    local screenCenterBottom = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
                     
-                    line.From = screenCenterBottom
-                    line.To = Vector2.new(hrpPos.X, hrpPos.Y)
-                    line.Color = espSettings.Color 
-                    line.Visible = true
-                else
-                    line.Visible = false 
+                    if espSettings.Boxes then
+                        drawings.Box.Visible = true
+                        drawings.Box.Size = Vector2.new(width, height)
+                        drawings.Box.Position = Vector2.new(headPos.X - width / 2, headPos.Y)
+                        drawings.Box.Color = espSettings.Color
+                    else drawings.Box.Visible = false end
+                    
+                    if espSettings.Names then
+                        drawings.Name.Visible = true
+                        drawings.Name.Position = Vector2.new(headPos.X, headPos.Y - 20)
+                        drawings.Name.Text = string.format("%s [%dm]", v.DisplayName, math.floor(distance))
+                        drawings.Name.Color = espSettings.Color
+                    else drawings.Name.Visible = false end
                 end
+
+                -- Line Logic (แก้ไขบัคเส้นค้าง)
+                if espSettings.Lines then
+                    drawings.Line.Visible = true
+                    drawings.Line.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
+                    drawings.Line.To = Vector2.new(pos.X, pos.Y)
+                    drawings.Line.Color = espSettings.Color
+                else drawings.Line.Visible = false end
+            else
+                drawings.Box.Visible = false
+                drawings.Name.Visible = false
+                drawings.Line.Visible = false
             end
         else
-            if tagData then tagData.Billboard.Enabled = false end
-            if box then box.Visible = false end
-            if line then line.Visible = false end
+            drawings.Box.Visible = false
+            drawings.Name.Visible = false
+            drawings.Line.Visible = false
         end
     end
 end)
+
+-- [[ Anti-Ban Movement ]] --
+-- การปรับ WalkSpeed ตรงๆ มักโดน AC แบน แนะนำให้ใช้การเปลี่ยนผ่านค่อยเป็นค่อยไปหรือจำกัดความเร็ว
+local function updateMovement()
+    local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+    if hum then
+        -- ใช้ความเร็วที่ไม่สูงเกินไป (แนะนำไม่เกิน 100 สำหรับเซิร์ฟเวอร์ที่มี AC)
+        hum.WalkSpeed = _G.SpeedEnabled and _G.WalkSpeed or 16
+    end
+end
+
+-- เพิ่มระบบจัดการผู้เล่นเข้า-ออก
+Players.PlayerAdded:Connect(createESP)
+Players.PlayerRemoving:Connect(function(v)
+    if espCache[v] then
+        for _, d in pairs(espCache[v]) do d:Remove() end
+        espCache[v] = nil
+    end
+end)
+for _, v in pairs(Players:GetPlayers()) do createESP(v) end
 
 -- [[ Functions ]] --
 local function getPlayerList()
@@ -286,10 +243,11 @@ MainTab:Toggle({
     Title = "เปิด/ปิด วิ่งเร็ว",
     Value = false,
     Callback = function(state)
-        speedEnabled = state
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.WalkSpeed = state and WALK_SPEED or 16
-        end
+        _G.SpeedEnabled = state 
+		updateMovement()
+     --   if player.Character and player.Character:FindFirstChild("Humanoid") then
+       --     player.Character.Humanoid.WalkSpeed = state and WALK_SPEED or 16
+     --   end
     end
 })
 
@@ -461,9 +419,11 @@ PlayerVisible:Colorpicker({
     Default = espSettings.Color,
     Callback = function(color)
         espSettings.Color = color
-        for _, tag in pairs(espStorage.Tags) do tag.Label.TextColor3 = color end
-        for _, box in pairs(espStorage.Boxes) do box.Color = color end
-        for _, line in pairs(espStorage.Lines) do line.Color = color end
+        for _, drawings in pairs(espCache) do
+            if drawings.Box then drawings.Box.Color = color end
+            if drawings.Name then drawings.Name.Color = color end
+            if drawings.Line then drawings.Line.Color = color end
+        end
     end
 })
 
