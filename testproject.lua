@@ -548,6 +548,46 @@ FlingLuck:Toggle({
     end
 })
 
+FlingLuck:Toggle({
+    Title = "Safe Auto-Aim",
+    Desc = "ล็อคเป้าแบบลดความเสี่ยง",
+    Default = false,
+    Callback = function(state)
+        flingEnabled = state
+        
+        if Value then
+            task.spawn(function()
+                while _G.AimlockEnabled do
+                    local lp = game.Players.LocalPlayer
+                    local camera = workspace.CurrentCamera
+                    local tool = lp.Character and lp.Character:FindFirstChildOfClass("Tool")
+
+                    if tool then
+                        local closestPlayer = nil
+                        local shortestDistance = 50 
+
+                        for _, player in pairs(game.Players:GetPlayers()) do
+                            if player ~= lp and player.Character and player.Character:FindFirstChild("Head") then
+                                local health = player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health or 0
+                                if health > 0 then
+                                    local distance = (player.Character.Head.Position - lp.Character.HumanoidRootPart.Position).Magnitude
+                                    if distance < shortestDistance then
+                                        closestPlayer = player
+                                        shortestDistance = distance
+                                    end
+                                end
+                            end
+                        end
+                        if closestPlayer then
+                            camera.CFrame = CFrame.new(camera.CFrame.Position, closestPlayer.Character.Head.Position)
+                        end
+                    end
+                    task.wait(0.01)
+                end
+            end)
+        end
+    end
+})
 
 discordBTN:Button({
     Title = "เข้าร่วม Discord",
