@@ -3,7 +3,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 if not game:IsLoaded() then
     game.Loaded:Wait() 
 end
-task.wait(math.random(10, 15)) 
+task.wait(math.random(5, 10)) 
 
 -- [[ Services & Variables ]] --
 local Players = game:GetService("Players")
@@ -168,11 +168,24 @@ for _, v in pairs(Players:GetPlayers()) do createESP(v) end
 -- [[ Functions ]] --
 local function getPlayerList()
     local list = {}
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= player then table.insert(list, v.Name) end
+    for _, v in pairs(game:GetService("Players"):GetPlayers()) do
+        if v ~= game:GetService("Players").LocalPlayer then
+            table.insert(list, v.Name)
+        end
     end
     return list
 end
+game:GetService("Players").PlayerAdded:Connect(function()
+    task.wait(1) 
+    if pDropdown then
+        pDropdown:SetValues(getPlayerList())
+    end
+end)
+game:GetService("Players").PlayerRemoving:Connect(function()
+    if pDropdown then
+        pDropdown:SetValues(getPlayerList())
+    end
+end)
 
 -- Fly Smooth System
 local flyConnection, bv, bg
@@ -584,31 +597,40 @@ discordBTN:Button({
 })
 
 -- [[ function ]] -- 
-local function hasWeapon(v, weaponName)
-    local char = v.Character
-    if not char then return false end
-    
-    -- 1. เช็คใน Backpack
-    local bp = v:FindFirstChild("Backpack")
-    if bp and bp:FindFirstChild(weaponName) then return true end
-    
-    -- 2. เช็คในตัวละคร (ทุก Part ที่เป็น Tool)
-    for _, item in pairs(char:GetChildren()) do
-        if item:IsA("Tool") and (item.Name:lower():find(weaponName:lower()) or item.Name == "Revolver") then
-            return true
+local function getDetailedRole(v)
+    pcall(function()
+        if playerData and playerData[v.Name] then
+            local role = tostring(playerData[v.Name].Role):lower()
+            if role == "murderer" or role == "murder" then
+                return "Murderer"
+            elseif role == "sheriff" or role == "hero" then
+                return "Sheriff"
+            end
         end
-    end
+    end)
+
+    -- 2. เช็คจาก Backpack & Character (เช็คไอเทมจริง)
+   	local char = v.Character
+    local bp = v:FindFirstChild("Backpack")
     
-    -- 3. กรณีเป็นโมเดลสัตว์/R15 (เช็ค Recursive)
-    local tool = char:FindFirstChildWhichIsA("Tool", true)
-    if tool and (tool.Name:lower():find(weaponName:lower()) or tool.Name == "Revolver") then
-        return true
+    local function checkItems(container)
+        if not container then return nil end
+        for _, item in pairs(container:GetChildren()) do
+            if item:IsA("Tool") then
+                local name = item.Name:lower()
+                if name:find("knife") or name:find("blade") or name:find("dagger") then
+                    return "Murderer"
+                elseif name:find("gun") or name:find("revolver") or name:find("pistol") then
+                    return "Sheriff"
+                end
+            end
+        end
+        return nil
     end
 
-    return false
+    return checkItems(char) or checkItems(bp)
 end
 
--- [[ ฟังก์ชันอัปเดตสี (Highlight) ]] --
 local function updateHighlights()
     if not _G.ShowRolesMM2 then return end
     
@@ -617,18 +639,10 @@ local function updateHighlights()
         
         local char = v.Character
         if not char then continue end
-
-        local isMurderer = hasWeapon(v, "Knife")
-        local isSheriff = hasWeapon(v, "Gun") or hasWeapon(v, "Revolver")
         
-        -- เช็คจาก Data Server เสริม (เผื่อเก็บอาวุธ)
-        if playerData[v.Name] then
-            local role = tostring(playerData[v.Name].Role):lower()
-            if role == "murderer" then isMurderer = true end
-            if role == "sheriff" or role == "hero" then isSheriff = true end
-        end
-
-        if isMurderer or isSheriff then
+        local role = getDetailedRole(v)
+        
+        if role then
             local highlight = char:FindFirstChild("RoleHighlight")
             if not highlight then
                 highlight = Instance.new("Highlight")
@@ -637,20 +651,28 @@ local function updateHighlights()
             end
             
             highlight.Enabled = true
-            highlight.FillColor = isMurderer and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 150, 255)
             highlight.FillOpacity = 0.5
             highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- ให้เห็นทะลุกำแพงชัวร์ๆ
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- ทะลุกำแพง
+            
+            if role == "Murderer" then
+                highlight.FillColor = Color3.fromRGB(255, 0, 0) -- แดง
+            elseif role == "Sheriff" then
+                highlight.FillColor = Color3.fromRGB(0, 150, 255) -- ฟ้า
+            end
         else
-            -- ถ้าไม่ใช่ M หรือ S ให้ลบสีออก
-            local h = char:FindFirstChild("RoleHighlight")
-            if h then h:Destroy() end
+            local highlight = char:FindFirstChild("RoleHighlight")
+            if highlight then
+                highlight:Destroy()
+            end
         end
     end
 end
+
+-- [[ ส่วนของ Toggle ]] --
 murderermystery2:Toggle({
     Title = "แสดงบทบาทของผู้เล่น (Chams)",
-    Desc = "ตัวแดง = Murderer | ตัวน้ำเงิน = Sheriff",
+    Desc = "สแกนทุกคน (แดง=ฆาตกร, ฟ้า=มือปืน)",
     Value = false,
     Callback = function(state)
         _G.ShowRolesMM2 = state
@@ -660,6 +682,7 @@ murderermystery2:Toggle({
             if roleConnection then roleConnection:Disconnect() end
             roleConnection = remote.OnClientEvent:Connect(function(data)
                 playerData = data
+                updateHighlights()
             end)
 
             task.spawn(function()
@@ -679,7 +702,6 @@ murderermystery2:Toggle({
         end
     end
 })
-
 -- [[ Notification & Start ]] --
 WindUI:Notify({
     Title = "HG HUB V1",
