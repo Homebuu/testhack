@@ -76,10 +76,9 @@ local espStorage = {
     Lines = {},
 }
 
-local randomName = "Internal_" .. math.random(100000, 999999)
-local espFolder = Instance.new("Folder")
+local randomName = "Part_" .. math.random(100000, 999999)
+local espFolder = Instance.new("Folder", game.CoreGui)
 espFolder.Name = randomName
-espFolder.Parent = player:WaitForChild("PlayerGui")
 
 -- [[ ESP Functions ]] --
 local function createDrawing(class, properties)
@@ -445,22 +444,6 @@ PlayerVisible:Toggle({
     Value = false,
     Callback = function(state) 
 		espSettings.Names = state 
-		if state then
-            for name, data in pairs(espStorage.Tags) do
-                if data.Billboard then data.Billboard:Destroy() end
-            end
-            table.clear(espStorage.Tags)
-
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= player then
-                    handlePlayerESP(p) 
-                end
-            end
-        else
-            for _, data in pairs(espStorage.Tags) do
-                if data.Billboard then data.Billboard.Enabled = false end
-            end
-        end	
 	end
 })
 PlayerVisible:Toggle({
