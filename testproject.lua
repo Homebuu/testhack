@@ -605,50 +605,51 @@ remote.OnClientEvent:Connect(function(data)
 end)
 local function getMM2Role(v)
     if playerData and playerData[v.Name] then
-        local role = playerData[v.Name].Role 
-        if role == "Murderer" then return "Murderer"
-        elseif role == "Sheriff" then return "Sheriff"
-        elseif role == "Hero" then return "Hero" end
+        local data = playerData[v.Name]
+        
+        if data.Dead == true or data.Killed == true then 
+            return nil 
+        end
+
+        local role = tostring(data.Role)
+        if role == "Murderer" then
+            return {Type = "Murderer", Color = Color3.fromRGB(255, 0, 0)}     -- แดง
+        elseif role == "Sheriff" then
+            return {Type = "Sheriff", Color = Color3.fromRGB(0, 150, 255)}   -- ฟ้า
+        elseif role == "Hero" then
+            return {Type = "Hero", Color = Color3.fromRGB(255, 255, 0)}      -- เหลือง
+        end
     end
+    
     local char = v.Character
     if char then
         local tool = char:FindFirstChildWhichIsA("Tool", true)
         if tool then
-            if tool.Name:lower():find("knife") then return "Murderer" end
-            if tool.Name:lower():find("gun") or tool.Name:lower():find("revolver") then return "Sheriff" end
+            local n = tool.Name:lower()
+            if n:find("knife") then return {Type = "Murderer", Color = Color3.fromRGB(255, 0, 0)} end
+            if n:find("gun") or n:find("revolver") then return {Type = "Sheriff", Color = Color3.fromRGB(0, 150, 255)} end
         end
     end
     return nil
 end
 local function updateHighlights()
-    if not _G.ShowRolesMM2 then return end
-    
     for _, v in pairs(game.Players:GetPlayers()) do
         if v == game.Players.LocalPlayer then continue end
-        
         local char = v.Character
         if char then
-            local role = getMM2Role(v)
+            local roleInfo = getMM2Role(v)
             local highlight = char:FindFirstChild("RoleHighlight")
 
-            if role then
+            if _G.ShowRolesMM2 and roleInfo then
                 if not highlight then
-                    highlight = Instance.new("Highlight")
+                    highlight = Instance.new("Highlight", char)
                     highlight.Name = "RoleHighlight"
-                    highlight.Parent = char
                 end
-                
-                highlight.Enabled = true
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.FillColor = roleInfo.Color
                 highlight.FillOpacity = 0.5
-                
-                if role == "Murderer" then
-                    highlight.FillColor = Color3.fromRGB(255, 0, 0)     -- สีแดง
-                elseif role == "Sheriff" then
-                    highlight.FillColor = Color3.fromRGB(0, 150, 255)   -- สีฟ้า
-                elseif role == "Hero" then
-                    highlight.FillColor = Color3.fromRGB(255, 255, 0)   -- สีเหลือง
-                end
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Enabled = true
             else
                 if highlight then highlight:Destroy() end
             end
@@ -663,20 +664,19 @@ murderermystery2:Toggle({
     Value = false,
     Callback = function(state)
         _G.ShowRolesMM2 = state
-        
-        if state then
+        if not state then
+            for _, v in pairs(game.Players:GetPlayers()) do
+                if v.Character and v.Character:FindFirstChild("RoleHighlight") then
+                    v.Character.RoleHighlight:Destroy()
+                end
+            end
+        else
             task.spawn(function()
                 while _G.ShowRolesMM2 do
                     updateHighlights()
                     task.wait(0.5)
                 end
             end)
-        else
-            for _, v in pairs(game.Players:GetPlayers()) do
-                if v.Character and v.Character:FindFirstChild("RoleHighlight") then
-                    v.Character.RoleHighlight:Destroy()
-                end
-            end
         end
     end
 })
