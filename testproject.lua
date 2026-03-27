@@ -61,8 +61,8 @@ local highlight = nil
 local flingEnabled = false
 local orbitAngle = 0
 
-local roleConnection = nil
 local playerData = {}
+local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("PlayerDataChanged")
 
 -- [[ ESP Variables ]] --
 local espSettings = { Names = false, Boxes = false, Lines = false, Color = Color3.fromRGB(255, 255, 255) }
@@ -597,40 +597,29 @@ discordBTN:Button({
 })
 
 -- [[ function ]] -- 
-local function getDetailedRole(v)
-    pcall(function()
-        if playerData and playerData[v.Name] then
-            local role = tostring(playerData[v.Name].Role):lower()
-            if role == "murderer" or role == "murder" then
-                return "Murderer"
-            elseif role == "sheriff" or role == "hero" then
-                return "Sheriff"
-            end
-        end
-    end)
-
-    -- 2. เช็คจาก Backpack & Character (เช็คไอเทมจริง)
-   	local char = v.Character
-    local bp = v:FindFirstChild("Backpack")
-    
-    local function checkItems(container)
-        if not container then return nil end
-        for _, item in pairs(container:GetChildren()) do
-            if item:IsA("Tool") then
-                local name = item.Name:lower()
-                if name:find("knife") or name:find("blade") or name:find("dagger") then
-                    return "Murderer"
-                elseif name:find("gun") or name:find("revolver") or name:find("pistol") then
-                    return "Sheriff"
-                end
-            end
-        end
-        return nil
+remote.OnClientEvent:Connect(function(data)
+    playerData = data
+    if _G.ShowRolesMM2 then
+        updateHighlights() 
     end
-
-    return checkItems(char) or checkItems(bp)
+end)
+local function getMM2Role(v)
+    if playerData and playerData[v.Name] then
+        local role = playerData[v.Name].Role 
+        if role == "Murderer" then return "Murderer"
+        elseif role == "Sheriff" then return "Sheriff"
+        elseif role == "Hero" then return "Hero" end
+    end
+    local char = v.Character
+    if char then
+        local tool = char:FindFirstChildWhichIsA("Tool", true)
+        if tool then
+            if tool.Name:lower():find("knife") then return "Murderer" end
+            if tool.Name:lower():find("gun") or tool.Name:lower():find("revolver") then return "Sheriff" end
+        end
+    end
+    return nil
 end
-
 local function updateHighlights()
     if not _G.ShowRolesMM2 then return end
     
@@ -638,32 +627,30 @@ local function updateHighlights()
         if v == game.Players.LocalPlayer then continue end
         
         local char = v.Character
-        if not char then continue end
-        
-        local role = getDetailedRole(v)
-        
-        if role then
+        if char then
+            local role = getMM2Role(v)
             local highlight = char:FindFirstChild("RoleHighlight")
-            if not highlight then
-                highlight = Instance.new("Highlight")
-                highlight.Name = "RoleHighlight"
-                highlight.Parent = char
-            end
-            
-            highlight.Enabled = true
-            highlight.FillOpacity = 0.5
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- ทะลุกำแพง
-            
-            if role == "Murderer" then
-                highlight.FillColor = Color3.fromRGB(255, 0, 0) -- แดง
-            elseif role == "Sheriff" then
-                highlight.FillColor = Color3.fromRGB(0, 150, 255) -- ฟ้า
-            end
-        else
-            local highlight = char:FindFirstChild("RoleHighlight")
-            if highlight then
-                highlight:Destroy()
+
+            if role then
+                if not highlight then
+                    highlight = Instance.new("Highlight")
+                    highlight.Name = "RoleHighlight"
+                    highlight.Parent = char
+                end
+                
+                highlight.Enabled = true
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.FillOpacity = 0.5
+                
+                if role == "Murderer" then
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)     -- สีแดง
+                elseif role == "Sheriff" then
+                    highlight.FillColor = Color3.fromRGB(0, 150, 255)   -- สีฟ้า
+                elseif role == "Hero" then
+                    highlight.FillColor = Color3.fromRGB(255, 255, 0)   -- สีเหลือง
+                end
+            else
+                if highlight then highlight:Destroy() end
             end
         end
     end
@@ -678,22 +665,13 @@ murderermystery2:Toggle({
         _G.ShowRolesMM2 = state
         
         if state then
-            local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("PlayerDataChanged")
-            if roleConnection then roleConnection:Disconnect() end
-            roleConnection = remote.OnClientEvent:Connect(function(data)
-                playerData = data
-                updateHighlights()
-            end)
-
             task.spawn(function()
                 while _G.ShowRolesMM2 do
                     updateHighlights()
-                    task.wait(0.3)
+                    task.wait(0.5)
                 end
             end)
         else
-            if roleConnection then roleConnection:Disconnect() roleConnection = nil end
-            playerData = {}
             for _, v in pairs(game.Players:GetPlayers()) do
                 if v.Character and v.Character:FindFirstChild("RoleHighlight") then
                     v.Character.RoleHighlight:Destroy()
