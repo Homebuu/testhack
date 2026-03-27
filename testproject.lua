@@ -61,8 +61,6 @@ local highlight = nil
 local flingEnabled = false
 local orbitAngle = 0
 
-local playerRoles = {}
-
 -- [[ ESP Variables ]] --
 local espSettings = { Names = false, Boxes = false, Lines = false, Color = Color3.fromRGB(255, 255, 255) }
 local espCache = {} -- ใช้ Table เดียวเก็บข้อมูลเพื่อความลื่น
@@ -116,14 +114,6 @@ RunService.Heartbeat:Connect(function()
                         drawings.Box.Color = espSettings.Color
                     else drawings.Box.Visible = false end
 
-					if _G.ShowRoles and playerRoles[v.Name] then
-					    drawings.Name.Text = string.format("%s %s [%dm]", playerRoles[v.Name].Text, v.DisplayName, math.floor(distance))
-					    drawings.Name.Color = playerRoles[v.Name].Color -- เปลี่ยนสีชื่อตามบทบาท
-					else
-					    drawings.Name.Text = string.format("%s [%dm]", v.DisplayName, math.floor(distance))
-					    drawings.Name.Color = espSettings.Color
-					end
-						
                     if espSettings.Names then
                         drawings.Name.Visible = true
                         drawings.Name.Position = Vector2.new(headPos.X, headPos.Y - 20)
@@ -234,20 +224,6 @@ local function toggleFly(state)
         if char then
             for _, part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then part.CanCollide = true end
-            end
-        end
-    end
-end
-
-local function updateRoles()
-    for _, v in pairs(Players:GetPlayers()) do
-        if v.Character then
-            -- เช็ค Murderer (ถือมีด)
-            if v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
-                playerRoles[v.Name] = {Text = "[MURDERER]", Color = Color3.fromRGB(255, 0, 0)}
-            -- เช็ค Sheriff (ถือปืน)
-            elseif v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
-                playerRoles[v.Name] = {Text = "[SHERIFF]", Color = Color3.fromRGB(0, 0, 255)}
             end
         end
     end
@@ -437,23 +413,6 @@ PlayerVisible:Toggle({
     Title = "เปิด/ปิด เส้นลาก (ESP Line)",
     Value = false,
     Callback = function(state) espSettings.Lines = state end
-})
-PlayerVisible:Toggle({
-    Title = "เปิด/ปิด ตรวจจับบทบาท (Role Detector)",
-    Value = false,
-    Callback = function(state)
-        _G.ShowRoles = state
-        if state then
-            task.spawn(function()
-                while _G.ShowRoles do
-                    updateRoles()
-                    task.wait(1)
-                end
-            end)
-        else
-            playerRoles = {} -- ล้างค่าเมื่อปิด
-        end
-    end
 })
 PlayerVisible:Colorpicker({
     Title = "สีของ ESP",
