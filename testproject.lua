@@ -4,17 +4,6 @@ if not game:IsLoaded() then
     game.Loaded:Wait() 
 end
 task.wait(math.random(10, 15)) 
-WindUI:AddTheme({
-    Name = "My Theme", 
-    Accent = Color3.fromHex("#18181b"),
-    Background = Color3.fromHex("#101010"),
-    Outline = Color3.fromHex("#FFFFFF"),
-    Text = Color3.fromHex("#FFFFFF"),
-    Placeholder = Color3.fromHex("#7a7a7a"),
-    Button = Color3.fromHex("#52525b"),
-    Icon = Color3.fromHex("#a1a1aa"),
-})
-WindUI:SetTheme("My Theme")
 
 -- [[ Services & Variables ]] --
 local Players = game:GetService("Players")
@@ -35,7 +24,7 @@ local Window = WindUI:CreateWindow({
 	Acrylic = false,
 	HideSearchBar = true,
 	SideBarWidth = 180,
-	ThemeSwitch = true,
+	ThemeSwitch = false,
 	OpenButton = {
 		Title = "Open Menu",
 		CornerRadius = UDim.new(1, 0), 
@@ -396,6 +385,82 @@ TeleportTab:Button({
                 Type = "Error"
             })
         end
+    end
+})
+
+TeleportTab:Button({
+    Title = "ดึงผู้เล่นที่เลือก",
+    Desc = "คุณต้องเลือกชื่อจาก Dropdown ก่อนกด",
+    Callback = function()
+        if selectedPlayer == "" or selectedPlayer == nil then
+            WindUI:Notify({
+                Title = "Error!",
+                Content = "คุณยังไม่ได้เลือกชื่อผู้เล่นที่จะวาร์ป!",
+                Duration = 4,
+                Type = "Error"
+            })
+            return 
+        end
+		local targetPlayer = game.Players:FindFirstChild(selectedPlayer)
+        local localPlayer = game.Players.LocalPlayer
+
+        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                targetPlayer.Character.HumanoidRootPart.CFrame = localPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+                
+                WindUI:Notify({
+                    Title = "Success",
+                    Content = "ดึงตัว " .. selectedPlayer .. " มาแล้ว!",
+                    Duration = 3,
+                    Type = "Success"
+                })
+            end
+        else
+            WindUI:Notify({
+                Title = "Error!",
+                Content = "ไม่พบตัวละครของผู้เล่น หรือผู้เล่นออกจากเซิร์ฟเวอร์แล้ว",
+                Duration = 4,
+                Type = "Error"
+            })
+        end
+    end
+})
+
+TeleportTab:Button({
+    Title = "ดึงผู้เล่นทุกคน",
+    Desc = "ระวัง! การดึงทุกคนอาจทำให้เกิดอาการ Lag หรือโดนแบนได้",
+    Callback = function()
+        local localPlayer = game.Players.LocalPlayer
+        local myRoot = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+
+        if not myRoot then 
+            WindUI:Notify({
+                Title = "Error!",
+                Content = "ไม่พบตัวละครของคุณ!",
+                Type = "Error"
+            })
+            return 
+        end
+
+        -- วนลูปดึงผู้เล่นทุกคนในเซิร์ฟเวอร์
+        for _, targetPlayer in pairs(game.Players:GetPlayers()) do
+            -- ตรวจสอบว่าไม่ใช่ตัวเราเอง และตัวละครเป้าหมายมีตัวตนอยู่จริง
+            if targetPlayer ~= localPlayer then
+                local targetRoot = targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+                
+                if targetRoot then
+                    -- ดึงมาไว้ข้างหน้าเราเล็กน้อย (กระจายตัวกันนิดหน่อยเพื่อไม่ให้ดีด)
+                    targetRoot.CFrame = myRoot.CFrame * CFrame.new(0, 0, -5)
+                end
+            end
+        end
+
+        WindUI:Notify({
+            Title = "Success",
+            Content = "ดึงผู้เล่นทุกคนมาหาคุณแล้ว!",
+            Duration = 3,
+            Type = "Success"
+        })
     end
 })
 
