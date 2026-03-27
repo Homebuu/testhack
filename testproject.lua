@@ -584,57 +584,70 @@ discordBTN:Button({
 })
 
 -- [[ function ]] -- 
-local function applyHighlight(targetPlayer, role)
-    local char = targetPlayer.Character
-    if not char then return end
-
-    local highlight = char:FindFirstChild("RoleHighlight")
-    if not highlight then
-        highlight = Instance.new("Highlight")
-        highlight.Name = "RoleHighlight"
-        highlight.Parent = char
-    end
-
-    if role == "Murderer" then
-        highlight.FillColor = Color3.fromRGB(255, 0, 0) 
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-    elseif role == "Sheriff" then
-        highlight.FillColor = Color3.fromRGB(0, 0, 255) 
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+local function hasWeapon(v, weaponName)
+    local char = v.Character
+    if not char then return false end
+    
+    -- 1. เช็คใน Backpack
+    local bp = v:FindFirstChild("Backpack")
+    if bp and bp:FindFirstChild(weaponName) then return true end
+    
+    -- 2. เช็คในตัวละคร (ทุก Part ที่เป็น Tool)
+    for _, item in pairs(char:GetChildren()) do
+        if item:IsA("Tool") and (item.Name:lower():find(weaponName:lower()) or item.Name == "Revolver") then
+            return true
+        end
     end
     
-    highlight.FillOpacity = 0.5 
-    highlight.OutlineOpacity = 1
-    highlight.Enabled = _G.ShowRolesMM2
+    -- 3. กรณีเป็นโมเดลสัตว์/R15 (เช็ค Recursive)
+    local tool = char:FindFirstChildWhichIsA("Tool", true)
+    if tool and (tool.Name:lower():find(weaponName:lower()) or tool.Name == "Revolver") then
+        return true
+    end
+
+    return false
 end
-local function checkAndHighlightAll()
+
+-- [[ ฟังก์ชันอัปเดตสี (Highlight) ]] --
+local function updateHighlights()
+    if not _G.ShowRolesMM2 then return end
+    
     for _, v in pairs(game.Players:GetPlayers()) do
         if v == game.Players.LocalPlayer then continue end
         
-        local role = nil
-        if playerData[v.Name] then
-            role = playerData[v.Name].Role
-        end
+        local char = v.Character
+        if not char then continue end
+
+        local isMurderer = hasWeapon(v, "Knife")
+        local isSheriff = hasWeapon(v, "Gun") or hasWeapon(v, "Revolver")
         
-        if not role then
-            local char = v.Character
-            local bp = v:FindFirstChild("Backpack")
-            if (bp and bp:FindFirstChild("Knife")) or (char and char:FindFirstChild("Knife")) then
-                role = "Murderer"
-            elseif (bp and bp:FindFirstChild("Gun")) or (char and char:FindFirstChild("Gun")) then
-                role = "Sheriff"
-            end
+        -- เช็คจาก Data Server เสริม (เผื่อเก็บอาวุธ)
+        if playerData[v.Name] then
+            local role = tostring(playerData[v.Name].Role):lower()
+            if role == "murderer" then isMurderer = true end
+            if role == "sheriff" or role == "hero" then isSheriff = true end
         end
 
-        if role == "Murderer" or role == "Sheriff" then
-            applyHighlight(v, role)
+        if isMurderer or isSheriff then
+            local highlight = char:FindFirstChild("RoleHighlight")
+            if not highlight then
+                highlight = Instance.new("Highlight")
+                highlight.Name = "RoleHighlight"
+                highlight.Parent = char
+            end
+            
+            highlight.Enabled = true
+            highlight.FillColor = isMurderer and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 150, 255)
+            highlight.FillOpacity = 0.5
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- ให้เห็นทะลุกำแพงชัวร์ๆ
         else
-            local h = v.Character and v.Character:FindFirstChild("RoleHighlight")
+            -- ถ้าไม่ใช่ M หรือ S ให้ลบสีออก
+            local h = char:FindFirstChild("RoleHighlight")
             if h then h:Destroy() end
         end
     end
 end
-
 murderermystery2:Toggle({
     Title = "แสดงบทบาทของผู้เล่น (Chams)",
     Desc = "ตัวแดง = Murderer | ตัวน้ำเงิน = Sheriff",
@@ -644,24 +657,25 @@ murderermystery2:Toggle({
         
         if state then
             local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("PlayerDataChanged")
+            if roleConnection then roleConnection:Disconnect() end
             roleConnection = remote.OnClientEvent:Connect(function(data)
                 playerData = data
-                checkAndHighlightAll() 
             end)
-            
+
             task.spawn(function()
                 while _G.ShowRolesMM2 do
-                    checkAndHighlightAll()
-                    task.wait(1) 
+                    updateHighlights()
+                    task.wait(0.3)
                 end
             end)
         else
             if roleConnection then roleConnection:Disconnect() roleConnection = nil end
-            for _, v in pairs(game.Players:GetPlayers()) do
-                local h = v.Character and v.Character:FindFirstChild("RoleHighlight")
-                if h then h:Destroy() end
-            end
             playerData = {}
+            for _, v in pairs(game.Players:GetPlayers()) do
+                if v.Character and v.Character:FindFirstChild("RoleHighlight") then
+                    v.Character.RoleHighlight:Destroy()
+                end
+            end
         end
     end
 })
