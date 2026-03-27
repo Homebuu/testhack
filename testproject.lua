@@ -445,6 +445,22 @@ PlayerVisible:Toggle({
     Value = false,
     Callback = function(state) 
 		espSettings.Names = state 
+		if state then
+            for name, data in pairs(espStorage.Tags) do
+                if data.Billboard then data.Billboard:Destroy() end
+            end
+            table.clear(espStorage.Tags)
+
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= player then
+                    handlePlayerESP(p) 
+                end
+            end
+        else
+            for _, data in pairs(espStorage.Tags) do
+                if data.Billboard then data.Billboard.Enabled = false end
+            end
+        end	
 	end
 })
 PlayerVisible:Toggle({
