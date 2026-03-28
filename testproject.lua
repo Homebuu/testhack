@@ -535,42 +535,111 @@ FlingLuck:Toggle({
 })
 
 FlingLuck:Toggle({
-    Title = "Safe Auto-Aim",
-    Desc = "ล็อคเป้าแบบลดความเสี่ยง",
+    Title = "Safe Aim-Bot",
+    Desc = "ล็อคเป้าหมาย มีโอกาศแบนสูง",
     Default = false,
     Callback = function(state)
-        flingEnabled = state
+        getgenv().AimbotEnabled = state
         
-        if Value then
-            task.spawn(function()
-                while _G.AimlockEnabled do
-                    local lp = game.Players.LocalPlayer
-                    local camera = workspace.CurrentCamera
-                    local tool = lp.Character and lp.Character:FindFirstChildOfClass("Tool")
+        -- ตั้งค่าเริ่มต้น (รันครั้งเดียวเมื่อกดเปิดครั้งแรก)
+        if state and not getgenv().AimbotInitialized then
+            getgenv().AimbotInitialized = true -- กันการรันซ้ำซ้อน
+            getgenv().FOV = 150
+            
+            local Players = game:GetService("Players")
+            local RunService = game:GetService("RunService")
+            local Camera = workspace.CurrentCamera
+            local LocalPlayer = Players.LocalPlayer
 
-                    if tool then
-                        local closestPlayer = nil
-                        local shortestDistance = 50 
+            -- สร้างวง FOV
+            local fovCircle = Drawing.new("Circle")
+            fovCircle.Color = Color3.new(1, 1, 1)
+            fovCircle.Thickness = 2
+            fovCircle.NumSides = 100
+            fovCircle.Radius = getgenv().FOV
+            fovCircle.Filled = false
+            fovCircle.Visible = false -- จะแสดงผลตามสถานะ state
+            fovCircle.Transparency = 1
 
-                        for _, player in pairs(game.Players:GetPlayers()) do
-                            if player ~= lp and player.Character and player.Character:FindFirstChild("Head") then
-                                local health = player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health or 0
-                                if health > 0 then
-                                    local distance = (player.Character.Head.Position - lp.Character.HumanoidRootPart.Position).Magnitude
-                                    if distance < shortestDistance then
-                                        closestPlayer = player
-                                        shortestDistance = distance
-                                    end
-                                end
+            local tracer = Drawing.new("Line")
+            tracer.Color = Color3.fromRGB(255, 0, 0)
+            tracer.Thickness = 2
+            tracer.Transparency = 1
+            tracer.Visible = false
+
+            local function getClosest()
+                local closest = nil
+                local shortest = getgenv().FOV
+                local center = Camera.ViewportSize / 2
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local hrp = p.Character.HumanoidRootPart
+                        local pos, on = Camera:WorldToViewportPoint(hrp.Position)
+                        if on then
+                            local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                            if d < shortest then
+                                shortest = d
+                                closest = hrp
                             end
                         end
-                        if closestPlayer then
-                            camera.CFrame = CFrame.new(camera.CFrame.Position, closestPlayer.Character.Head.Position)
+                    end
+                end
+                return closest
+            end
+
+            RunService.RenderStepped:Connect(function()
+                if getgenv().AimbotEnabled then
+                    local size = Camera.ViewportSize
+                    local center = Vector2.new(size.X / 2, size.Y / 2)
+                    
+                    fovCircle.Position = center
+                    fovCircle.Radius = getgenv().FOV
+                    fovCircle.Visible = true -- เปิดวงกลมเมื่อเปิดใช้งาน
+                    
+                    local hrp = getClosest()
+                    if hrp then
+                        local pos, on = Camera:WorldToViewportPoint(hrp.Position)
+                        if on then
+                            tracer.From = center
+                            tracer.To = Vector2.new(pos.X, pos.Y)
+                            tracer.Visible = true
+                            getgenv().TargetPosition = hrp.CFrame
+                            return
                         end
                     end
-                    task.wait(0.01)
+                else
+                    fovCircle.Visible = false
                 end
+                tracer.Visible = false
+                getgenv().TargetPosition = nil
             end)
+
+            local mt = getrawmetatable(game)
+            local old = mt.__namecall
+            setreadonly(mt, false)
+            mt.__namecall = newcclosure(function(...)
+                local m = getnamecallmethod()
+                local a = {...}
+                
+                if not getgenv().AimbotEnabled or not getgenv().TargetPosition then
+                    return old(unpack(a))
+                end
+                
+                if m == "FireServer" then
+                    if typeof(a[2]) == "CFrame" then a[2] = getgenv().TargetPosition 
+                    elseif typeof(a[2]) == "Vector3" then a[2] = getgenv().TargetPosition.Position end
+                    return old(unpack(a))
+                end
+                
+                if m == "InvokeServer" then
+                    if typeof(a[3]) == "CFrame" then a[3] = getgenv().TargetPosition 
+                    elseif typeof(a[3]) == "Vector3" then a[3] = getgenv().TargetPosition.Position end
+                    return old(unpack(a))
+                end
+                
+                return old(unpack(a))
+            end)
+            setreadonly(mt, true)
         end
     end
 })
