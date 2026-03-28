@@ -63,11 +63,11 @@ local JUMP_POWER = 50
 local speedEnabled = true
 local jumpEnabled = false
 local flyEnabled = false
-local selectedPlayer = "" -- ตัวแปรเก็บชื่อผู้เล่นที่เลือก (เริ่มต้นเป็นว่างเปล่า)
 local highlight = nil
 local flingEnabled = false
 local orbitAngle = 0
-
+local selectedPlayer = nil
+local pDropdown = nil
 local playerData = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -193,10 +193,9 @@ local function refreshDropdown()
     if pDropdown then
         local newList = getPlayerList()
         pDropdown:SetValues(newList)
-
         if selectedPlayer and not table.find(newList, selectedPlayer) then
             selectedPlayer = nil
-            pDropdown:SetValue(nil) 
+            pDropdown:SetValue(nil)
         end
     end
 end
@@ -343,17 +342,9 @@ local pDropdown = TeleportTab:Dropdown({
     Multi = false,
     Values = getPlayerList(),
     Callback = function(name)
-        selectedPlayer = name 
+        selectedPlayer = name
         local target = Players:FindFirstChild(name)
         if target and target.Character then end
-    end
-})
-
-TeleportTab:Button({
-    Title = "อัปเดตรายชื่อ (Refresh)",
-    Desc = "กดเมื่อมีคนเข้าหรือออกจากเซิร์ฟเวอร์",
-    Callback = function()
-        pDropdown:SetValues(getPlayerList())
     end
 })
 
