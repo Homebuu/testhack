@@ -900,39 +900,42 @@ murderermystery2:Toggle({
                 if not knife then return end
 
                 for _, v in pairs(game.Players:GetPlayers()) do
-                    if not _G.KillAllMM2 then break end
-                    if v == lp then continue end
-                    if not v.Character then continue end
-
-                    local targetHRP = v.Character:FindFirstChild("HumanoidRootPart")
-                    if not targetHRP then continue end
-
-                    -- กรองเฉพาะ Innocent, Hero, Sheriff (ไม่ฆ่า Murderer เหมือนกัน)
-                    if playerData and playerData[v.Name] then
-                        if playerData[v.Name].Dead == true then continue end
-                        local role = tostring(playerData[v.Name].Role)
-                        if role == "Murderer" then continue end
-                    else
-                        -- ถ้าไม่มี playerData ให้เช็คจาก Knife แทน
-                        if v.Backpack:FindFirstChild("Knife") or
-                           (v.Character and v.Character:FindFirstChild("Knife")) then
-                            continue
-                        end
-                    end
-
-                    local oldPos = hrp.CFrame
-                    targetHRP.Anchored = true
-                    hrp.CFrame = CFrame.new(targetHRP.Position) *
-                        CFrame.new(0, 0, 2)
-                    task.wait(0.1)
-
-                    knife.Stab:FireServer("Slash")
-                    task.wait(0.1)
-
-                    targetHRP.Anchored = false
-                    hrp.CFrame = oldPos
-                    task.wait(0.3)
-                end
+				    if not _G.KillAllMM2 then break end
+				    if v == lp then continue end
+				    if not v.Character then continue end
+				
+				    local targetHRP = v.Character:FindFirstChild("HumanoidRootPart")
+				    if not targetHRP then continue end
+				
+				    if playerData and playerData[v.Name] then
+				        if playerData[v.Name].Dead == true then continue end
+				        local role = tostring(playerData[v.Name].Role)
+				        if role == "Murderer" then continue end
+				    else
+				        if v.Backpack:FindFirstChild("Knife") or
+				           (v.Character and v.Character:FindFirstChild("Knife")) then
+				            continue
+				        end
+				    end
+				
+				    local oldPos = hrp.CFrame
+				
+				    pcall(function()
+				        targetHRP.Anchored = true
+				        hrp.CFrame = CFrame.new(targetHRP.Position) * CFrame.new(0, 0, 2)
+				        task.wait(0.1)
+				        knife.Stab:FireServer("Slash")
+				        task.wait(0.1)
+				    end)
+				
+				    -- ปลด Anchor แน่นอนไม่ว่าจะ error หรือไม่
+				    pcall(function()
+				        targetHRP.Anchored = false
+				    end)
+				
+				    hrp.CFrame = oldPos
+				    task.wait(0.3)
+				end
             end
 
             task.spawn(function()
