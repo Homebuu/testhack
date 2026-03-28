@@ -787,8 +787,7 @@ murderermystery2:Toggle({
             task.spawn(function()
                 while _G.AutoFlingMurderer do
                     task.wait(0.1)
-
-                    -- หาฆาตกร
+                    
                     local murderer = nil
                     for _, v in pairs(game.Players:GetPlayers()) do
                         if v == game.Players.LocalPlayer then continue end
@@ -798,7 +797,7 @@ murderermystery2:Toggle({
                                 break
                             end
                         end
-                        if v.Backpack:FindFirstChild("Knife") or
+                        if v.Backpack:FindFirstChild("Knife") or 
                            (v.Character and v.Character:FindFirstChild("Knife")) then
                             murderer = v
                             break
@@ -807,8 +806,7 @@ murderermystery2:Toggle({
 
                     if not murderer or not murderer.Character then continue end
 
-                    local lp = game.Players.LocalPlayer
-                    local char = lp.Character
+                    local char = game.Players.LocalPlayer.Character
                     if not char then continue end
 
                     local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -819,55 +817,44 @@ murderermystery2:Toggle({
                     local murdererHum = murderer.Character:FindFirstChildOfClass("Humanoid")
                     if not murdererHRP or not murdererHum then continue end
 
-                    -- บันทึก Position ตัวเองเดิม
-                    local myOldPos = hrp.CFrame
-
-                    -- ย้ายตัวเองออกห่างก่อน ไม่ให้โดน
-                    hrp.CFrame = CFrame.new(myOldPos.Position + Vector3.new(0, 100, 0))
+                    local oldPos = hrp.CFrame
 
                     workspace.FallenPartsDestroyHeight = 0/0
 
-                    -- ใส่ BodyVelocity ให้ฆาตกรโดยตรง
                     local bv = Instance.new("BodyVelocity")
                     bv.Velocity = Vector3.new(9e8, 9e8, 9e8)
                     bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                    bv.Parent = murdererHRP
+                    bv.Parent = hrp
 
-                    local ba = Instance.new("BodyAngularVelocity")
-                    ba.AngularVelocity = Vector3.new(9e8, 9e8, 9e8)
-                    ba.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-                    ba.Parent = murdererHRP
-
-                    murdererHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+                    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 
                     local angle = 0
                     local startTime = tick()
 
                     repeat
                         angle = angle + 100
-                        -- วนรอบตัวฆาตกรโดยไม่ต้องให้ตัวเราไปด้วย
-                        murdererHRP.CFrame = CFrame.new(murdererHRP.Position) *
-                            CFrame.new(0, 1.5, 0) *
+                        hrp.CFrame = CFrame.new(murdererHRP.Position) * 
+                            CFrame.new(0, 1.5, 0) * 
                             CFrame.Angles(math.rad(angle), 0, 0)
-                        murdererHRP.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
-                        murdererHRP.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+                        hrp.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+                        hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
                         task.wait()
-                    until murdererHRP.AssemblyLinearVelocity.Magnitude > 500
+                    until murdererHRP.AssemblyLinearVelocity.Magnitude > 500 
                         or not _G.AutoFlingMurderer
                         or tick() - startTime > 3
 
-                    -- ลบ BodyVelocity ออกจากฆาตกร
                     bv:Destroy()
-                    ba:Destroy()
-                    murdererHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+                    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
 
-                    -- กลับ Position ตัวเอง
-                    hrp.CFrame = myOldPos
-                    hum:ChangeState("GettingUp")
+                    repeat
+                        hrp.CFrame = oldPos * CFrame.new(0, 0.5, 0)
+                        hum:ChangeState("GettingUp")
+                        task.wait()
+                    until (hrp.Position - oldPos.p).Magnitude < 25
 
                     workspace.FallenPartsDestroyHeight = -500
 
-                    task.wait(2)
+                    task.wait(2) 
                 end
             end)
         end
