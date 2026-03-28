@@ -336,7 +336,7 @@ TeleportTab:Button({
     Title = "อัปเดตรายชื่อ (Refresh)",
     Desc = "กดเมื่อมีคนเข้าหรือออกจากเซิร์ฟเวอร์",
     Callback = function()
-        pDropdown:SetValues(getPlayerList())
+        pDropdown:Refresh(getPlayerList())
     end
 })
 
