@@ -67,7 +67,6 @@ local highlight = nil
 local flingEnabled = false
 local orbitAngle = 0
 local selectedPlayer = nil
-local pDropdown = nil
 local playerData = {}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -321,6 +320,27 @@ MainTab:Toggle({
 })
 
 -- --- [ เทเลพอร์ต ] --- --
+local teleportSection = TeleportTab:Section({ Title = "เลือกผู้เล่น" })
+local pDropdown = nil
+local function rebuildDropdown()
+    if pDropdown then
+        pDropdown:Destroy()
+        pDropdown = nil
+    end
+    pDropdown = TeleportTab:Dropdown({
+        Title = "เลือกผู้เล่น",
+        Desc = "ดึงรายชื่อผู้เล่นทั้งหมดในเซิร์ฟเวอร์",
+        Multi = false,
+        Values = getPlayerList(),
+        Callback = function(name)
+            selectedPlayer = name
+        end
+    })
+end
+
+-- สร้างครั้งแรก
+rebuildDropdown()
+--[[
 local pDropdown = TeleportTab:Dropdown({
     Title = "เลือกผู้เล่น",
     Desc = "ดึงรายชื่อผู้เล่นทั้งหมดในเซิร์ฟเวอร์",
@@ -331,7 +351,7 @@ local pDropdown = TeleportTab:Dropdown({
         local target = Players:FindFirstChild(name)
         if target and target.Character then end
     end
-})
+})]]--
 TeleportTab:Button({
     Title = "อัปเดตรายชื่อ (Refresh)",
     Desc = "กดเมื่อมีคนเข้าหรือออกจากเซิร์ฟเวอร์",
@@ -419,11 +439,14 @@ TeleportTab:Button({
 })
 Players.PlayerAdded:Connect(function()
     task.wait(1)
-    refreshDropdown()
+    rebuildDropdown()
 end)
-Players.PlayerRemoving:Connect(function(player)
+Players.PlayerRemoving:Connect(function(leavingPlayer)
     task.wait(0.1)
-    refreshDropdown()
+    if selectedPlayer == leavingPlayer.Name then
+        selectedPlayer = nil
+    end
+    rebuildDropdown()
 end)
 
 PlayerVisible:Section({ Title = "Player Visuals" })
