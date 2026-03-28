@@ -199,15 +199,6 @@ local function refreshDropdown()
         end
     end
 end
-Players.PlayerAdded:Connect(function()
-    task.wait(1)
-    refreshDropdown()
-end)
-Players.PlayerRemoving:Connect(function(player)
-    task.wait(0.1) 
-    refreshDropdown()
-end)
-
 -- Fly Smooth System
 local flyConnection, bv, bg
 local function toggleFly(state)
@@ -426,6 +417,14 @@ TeleportTab:Button({
         end
     end
 })
+Players.PlayerAdded:Connect(function()
+    task.wait(1)
+    refreshDropdown()
+end)
+Players.PlayerRemoving:Connect(function(player)
+    task.wait(0.1)
+    refreshDropdown()
+end)
 
 PlayerVisible:Section({ Title = "Player Visuals" })
 PlayerVisible:Toggle({
