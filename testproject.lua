@@ -597,12 +597,14 @@ discordBTN:Button({
 })
 
 -- [[ function ]] -- 
-remote.OnClientEvent:Connect(function(data)
-    playerData = data
-    if _G.ShowRolesMM2 then
-        updateHighlights() 
-    end
-end)
+if remote then
+    remote.OnClientEvent:Connect(function(data)
+        playerData = data
+        if _G.ShowRolesMM2 then
+            updateHighlights() 
+        end
+    end)
+end
 local function getMM2Role(v)
     if playerData and playerData[v.Name] then
         local data = playerData[v.Name]
