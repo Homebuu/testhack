@@ -541,9 +541,8 @@ FlingLuck:Toggle({
     Callback = function(state)
         getgenv().AimbotEnabled = state
         
-        -- ตั้งค่าเริ่มต้น (รันครั้งเดียวเมื่อกดเปิดครั้งแรก)
         if state and not getgenv().AimbotInitialized then
-            getgenv().AimbotInitialized = true -- กันการรันซ้ำซ้อน
+            getgenv().AimbotInitialized = true
             getgenv().FOV = 150
             
             local Players = game:GetService("Players")
@@ -551,35 +550,37 @@ FlingLuck:Toggle({
             local Camera = workspace.CurrentCamera
             local LocalPlayer = Players.LocalPlayer
 
-            -- สร้างวง FOV
             local fovCircle = Drawing.new("Circle")
             fovCircle.Color = Color3.new(1, 1, 1)
-            fovCircle.Thickness = 2
+            fovCircle.Thickness = 1
             fovCircle.NumSides = 100
             fovCircle.Radius = getgenv().FOV
-            fovCircle.Filled = false
-            fovCircle.Visible = false -- จะแสดงผลตามสถานะ state
+            fovCircle.Visible = false
             fovCircle.Transparency = 1
 
             local tracer = Drawing.new("Line")
             tracer.Color = Color3.fromRGB(255, 0, 0)
             tracer.Thickness = 2
-            tracer.Transparency = 1
             tracer.Visible = false
 
+            -- ฟังก์ชันหาเป้าหมาย (ถ้าอยากให้ทะลุกำแพง ไม่ต้องใส่ Raycast)
             local function getClosest()
                 local closest = nil
                 local shortest = getgenv().FOV
                 local center = Camera.ViewportSize / 2
                 for _, p in pairs(Players:GetPlayers()) do
                     if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                        local hrp = p.Character.HumanoidRootPart
-                        local pos, on = Camera:WorldToViewportPoint(hrp.Position)
-                        if on then
-                            local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
-                            if d < shortest then
-                                shortest = d
-                                closest = hrp
+                        -- ตรวจสอบว่ายังมีชีวิตอยู่
+                        local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                        if hum and hum.Health > 0 then
+                            local hrp = p.Character.HumanoidRootPart
+                            local pos, on = Camera:WorldToViewportPoint(hrp.Position)
+                            if on then
+                                local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                                if d < shortest then
+                                    shortest = d
+                                    closest = hrp
+                                end
                             end
                         end
                     end
@@ -589,21 +590,18 @@ FlingLuck:Toggle({
 
             RunService.RenderStepped:Connect(function()
                 if getgenv().AimbotEnabled then
-                    local size = Camera.ViewportSize
-                    local center = Vector2.new(size.X / 2, size.Y / 2)
-                    
-                    fovCircle.Position = center
+                    fovCircle.Position = Camera.ViewportSize / 2
                     fovCircle.Radius = getgenv().FOV
-                    fovCircle.Visible = true -- เปิดวงกลมเมื่อเปิดใช้งาน
+                    fovCircle.Visible = true
                     
                     local hrp = getClosest()
                     if hrp then
                         local pos, on = Camera:WorldToViewportPoint(hrp.Position)
                         if on then
-                            tracer.From = center
+                            tracer.From = Camera.ViewportSize / 2
                             tracer.To = Vector2.new(pos.X, pos.Y)
                             tracer.Visible = true
-                            getgenv().TargetPosition = hrp.CFrame
+                            getgenv().TargetPosition = hrp.CFrame -- เก็บค่า CFrame ไว้
                             return
                         end
                     end
@@ -614,29 +612,28 @@ FlingLuck:Toggle({
                 getgenv().TargetPosition = nil
             end)
 
+            -- [[ ส่วนที่แก้ไขให้ล็อคแม่นขึ้น ]]
             local mt = getrawmetatable(game)
             local old = mt.__namecall
             setreadonly(mt, false)
+
             mt.__namecall = newcclosure(function(...)
                 local m = getnamecallmethod()
                 local a = {...}
                 
-                if not getgenv().AimbotEnabled or not getgenv().TargetPosition then
-                    return old(unpack(a))
+                if getgenv().AimbotEnabled and getgenv().TargetPosition then
+                    if m == "FireServer" or m == "InvokeServer" then
+                        -- วนลูปเช็คทุก Argument ว่าอันไหนเป็นตำแหน่งพิกัด
+                        for i, v in pairs(a) do
+                            if typeof(v) == "Vector3" then
+                                a[i] = getgenv().TargetPosition.Position
+                            elseif typeof(v) == "CFrame" then
+                                a[i] = getgenv().TargetPosition
+                            end
+                        end
+                        return old(unpack(a))
+                    end
                 end
-                
-                if m == "FireServer" then
-                    if typeof(a[2]) == "CFrame" then a[2] = getgenv().TargetPosition 
-                    elseif typeof(a[2]) == "Vector3" then a[2] = getgenv().TargetPosition.Position end
-                    return old(unpack(a))
-                end
-                
-                if m == "InvokeServer" then
-                    if typeof(a[3]) == "CFrame" then a[3] = getgenv().TargetPosition 
-                    elseif typeof(a[3]) == "Vector3" then a[3] = getgenv().TargetPosition.Position end
-                    return old(unpack(a))
-                end
-                
                 return old(unpack(a))
             end)
             setreadonly(mt, true)
