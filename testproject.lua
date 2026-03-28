@@ -537,65 +537,6 @@ FlingLuck:Toggle({
 })
 
 FlingLuck:Toggle({
-    Title = "Fling All Players",
-    Desc = "เตะทุกคนในเซิร์ฟเวอร์ออกจากแมพ",
-    Value = false,
-    Callback = function(state)
-        flingAllEnabled = state
-
-        if not state then return end
-
-        local char = player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-
-        local originalCFrame = hrp.CFrame
-
-        WindUI:Notify({
-            Title = "Fling All!",
-            Content = "กำลังส่งทุกคนออกไป!",
-            Duration = 3,
-            Type = "Warning"
-        })
-
-        task.spawn(function()
-            while flingAllEnabled and char and hrp do
-                for _, target in pairs(Players:GetPlayers()) do
-                    if not flingAllEnabled then break end
-                    if target == player then continue end
-                    if not target.Character then continue end
-
-                    local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-                    if not targetHrp then continue end
-
-                    for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
-                    end
-
-                    hrp.Velocity = Vector3.new(0, 3000, 0)
-                    hrp.RotVelocity = Vector3.new(3000, 3000, 3000)
-
-                    local jitter = Vector3.new(math.random(-1,1)/100, 0, math.random(-1,1)/100)
-                    hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
-
-                    task.wait()
-                end
-                task.wait(0.1)
-            end
-
-            if hrp then
-                hrp.Velocity = Vector3.zero
-                hrp.RotVelocity = Vector3.zero
-                hrp.CFrame = originalCFrame
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then part.CanCollide = true end
-                end
-            end
-        end)
-    end
-})
-
-FlingLuck:Toggle({
     Title = "Safe Auto-Aim",
     Desc = "ล็อคเป้าแบบลดความเสี่ยง",
     Default = false,
