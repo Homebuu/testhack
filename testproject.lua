@@ -696,7 +696,7 @@ murderermystery2:Toggle({
             task.spawn(function()
                 while _G.ShowRolesMM2 do
                     updateHighlights()
-                    task.wait(0.5)
+                    task.wait(0.2)
                 end
             end)
         end
