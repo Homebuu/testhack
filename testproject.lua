@@ -69,7 +69,14 @@ local flingEnabled = false
 local orbitAngle = 0
 
 local playerData = {}
-local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("PlayerDataChanged")
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+if game.PlaceId == 142823291 then 
+	local remote = ReplicatedStorage
+	    :FindFirstChild("Remotes")
+	    and ReplicatedStorage.Remotes:FindFirstChild("Gameplay")
+	    and ReplicatedStorage.Remotes.Gameplay:FindFirstChild("PlayerDataChanged")
+end 
 
 -- [[ ESP Variables ]] --
 local espSettings = { Names = false, Boxes = false, Lines = false, Color = Color3.fromRGB(255, 255, 255) }
