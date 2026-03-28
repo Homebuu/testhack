@@ -860,20 +860,18 @@ murderermystery2:Toggle({
             task.spawn(function()
                 while _G.AutoFlingMurderer do
                     task.wait(0.1)
-                    
+
                     -- หาฆาตกร
                     local murderer = nil
                     for _, v in pairs(game.Players:GetPlayers()) do
                         if v == game.Players.LocalPlayer then continue end
-                        -- เช็คจาก playerData
                         if playerData and playerData[v.Name] then
                             if tostring(playerData[v.Name].Role) == "Murderer" then
                                 murderer = v
                                 break
                             end
                         end
-                        -- เช็คจาก Backpack/Character
-                        if v.Backpack:FindFirstChild("Knife") or 
+                        if v.Backpack:FindFirstChild("Knife") or
                            (v.Character and v.Character:FindFirstChild("Knife")) then
                             murderer = v
                             break
@@ -882,7 +880,8 @@ murderermystery2:Toggle({
 
                     if not murderer or not murderer.Character then continue end
 
-                    local char = game.Players.LocalPlayer.Character
+                    local lp = game.Players.LocalPlayer
+                    local char = lp.Character
                     if not char then continue end
 
                     local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -893,53 +892,159 @@ murderermystery2:Toggle({
                     local murdererHum = murderer.Character:FindFirstChildOfClass("Humanoid")
                     if not murdererHRP or not murdererHum then continue end
 
-                    -- บันทึก Position เดิม
-                    local oldPos = hrp.CFrame
+                    -- บันทึก Position ตัวเองเดิม
+                    local myOldPos = hrp.CFrame
 
-                    -- Fling
+                    -- ย้ายตัวเองออกห่างก่อน ไม่ให้โดน
+                    hrp.CFrame = CFrame.new(myOldPos.Position + Vector3.new(0, 100, 0))
+
                     workspace.FallenPartsDestroyHeight = 0/0
 
+                    -- ใส่ BodyVelocity ให้ฆาตกรโดยตรง
                     local bv = Instance.new("BodyVelocity")
                     bv.Velocity = Vector3.new(9e8, 9e8, 9e8)
                     bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                    bv.Parent = hrp
+                    bv.Parent = murdererHRP
 
-                    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+                    local ba = Instance.new("BodyAngularVelocity")
+                    ba.AngularVelocity = Vector3.new(9e8, 9e8, 9e8)
+                    ba.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                    ba.Parent = murdererHRP
+
+                    murdererHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 
                     local angle = 0
                     local startTime = tick()
 
                     repeat
                         angle = angle + 100
-                        -- วนรอบฆาตกร
-                        hrp.CFrame = CFrame.new(murdererHRP.Position) * 
-                            CFrame.new(0, 1.5, 0) * 
+                        -- วนรอบตัวฆาตกรโดยไม่ต้องให้ตัวเราไปด้วย
+                        murdererHRP.CFrame = CFrame.new(murdererHRP.Position) *
+                            CFrame.new(0, 1.5, 0) *
                             CFrame.Angles(math.rad(angle), 0, 0)
-                        hrp.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
-                        hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+                        murdererHRP.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+                        murdererHRP.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
                         task.wait()
-                    until murdererHRP.AssemblyLinearVelocity.Magnitude > 500 
+                    until murdererHRP.AssemblyLinearVelocity.Magnitude > 500
                         or not _G.AutoFlingMurderer
                         or tick() - startTime > 3
 
+                    -- ลบ BodyVelocity ออกจากฆาตกร
                     bv:Destroy()
-                    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+                    ba:Destroy()
+                    murdererHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
 
-                    -- กลับ Position เดิม
-                    repeat
-                        hrp.CFrame = oldPos * CFrame.new(0, 0.5, 0)
-                        hum:ChangeState("GettingUp")
-                        task.wait()
-                    until (hrp.Position - oldPos.p).Magnitude < 25
+                    -- กลับ Position ตัวเอง
+                    hrp.CFrame = myOldPos
+                    hum:ChangeState("GettingUp")
 
                     workspace.FallenPartsDestroyHeight = -500
 
-                    task.wait(2) -- cooldown ก่อน Fling ใหม่
+                    task.wait(2)
                 end
             end)
         end
     end
 })
+local killAllConnection = nil
+
+murderermystery2:Toggle({
+    Title = "สังหารทุกคน (Murderer Only)",
+    Desc = "เมื่อเป็นฆาตกร จะฆ่าทุกคนอัตโนมัติ",
+    Value = false,
+    Callback = function(state)
+        _G.KillAllMM2 = state
+
+        if not state then
+            if killAllConnection then
+                killAllConnection:Disconnect()
+                killAllConnection = nil
+            end
+        else
+            local function isMurderer()
+                local lp = game.Players.LocalPlayer
+                -- เช็คจาก playerData
+                if playerData and playerData[lp.Name] then
+                    if tostring(playerData[lp.Name].Role) == "Murderer" then
+                        return true
+                    end
+                end
+                -- เช็คจาก Backpack/Character
+                if lp.Backpack:FindFirstChild("Knife") then return true end
+                if lp.Character and lp.Character:FindFirstChild("Knife") then return true end
+                return false
+            end
+
+            local function killAll()
+                local lp = game.Players.LocalPlayer
+                local char = lp.Character
+                if not char then return end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
+                -- เช็คว่ามีมีดไหม
+                if not char:FindFirstChild("Knife") then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if lp.Backpack:FindFirstChild("Knife") then
+                        hum:EquipTool(lp.Backpack:FindFirstChild("Knife"))
+                        task.wait(0.1)
+                    else
+                        return -- ไม่มีมีด
+                    end
+                end
+
+                local knife = char:FindFirstChild("Knife")
+                if not knife then return end
+
+                -- วน Fling ทุกคน
+                for _, v in pairs(game.Players:GetPlayers()) do
+                    if not _G.KillAllMM2 then break end
+                    if v == lp then continue end
+                    if not v.Character then continue end
+
+                    local targetHRP = v.Character:FindFirstChild("HumanoidRootPart")
+                    if not targetHRP then continue end
+
+                    -- เช็คว่าตายแล้วหรือยัง
+                    if playerData and playerData[v.Name] then
+                        if playerData[v.Name].Dead == true then continue end
+                    end
+
+                    -- TP ไปหาเป้าหมาย
+                    local oldPos = hrp.CFrame
+                    targetHRP.Anchored = true
+                    hrp.CFrame = CFrame.new(targetHRP.Position) * 
+                        CFrame.new(0, 0, 2)
+
+                    task.wait(0.1)
+
+                    -- ฆ่า
+                    knife.Stab:FireServer("Slash")
+
+                    task.wait(0.1)
+
+                    -- ปลด Anchor
+                    targetHRP.Anchored = false
+
+                    -- กลับที่เดิม
+                    hrp.CFrame = oldPos
+
+                    task.wait(0.3)
+                end
+            end
+
+            task.spawn(function()
+                while _G.KillAllMM2 do
+                    task.wait(1)
+                    if isMurderer() then
+                        killAll()
+                    end
+                end
+            end)
+        end
+    end
+})
+
 -- [[ Notification & Start ]] --
 WindUI:Notify({
     Title = "HG HUB V1",
