@@ -38,6 +38,13 @@ local Window = WindUI:CreateWindow({
 		Enabled = true,
 		Anonymous = false,
 	},
+	KeySystem = { 
+        Key = { "1234", "5678" },
+        Note = "Example Key System.",
+        URL = "YOUR LINK TO GET KEY (Discord, Linkvertise, Pastebin, etc.)",
+        SaveKey = true, -- automatically save and load the key.
+    },
+	
 })
 
 Window:SetToggleKey(Enum.KeyCode.LeftControl)
