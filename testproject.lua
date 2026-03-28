@@ -26,7 +26,7 @@ local Window = WindUI:CreateWindow({
 	SideBarWidth = 180,
 	ThemeSwitch = false,
 	OpenButton = {
-		Title = "Open Menu",
+		Title = "HG HUBV1",
 		CornerRadius = UDim.new(1, 0), 
 		StrokeThickness = 3,
 		Enabled = true, 
@@ -37,6 +37,7 @@ local Window = WindUI:CreateWindow({
 	User = {
 		Enabled = true,
 		Anonymous = false,
+		Callback = function() Window.User:SetAnonymous(true) end,
 	},
 	KeySystem = { 
         Key = { "HomebuuKuy56", "HomebuuKuy54", "Home56" },
@@ -70,6 +71,7 @@ local selectedPlayer = nil
 local playerData = {}
 
 local flingAllEnabled = false
+local pDropdown = nil
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 if game.PlaceId == 142823291 then 
@@ -183,24 +185,22 @@ for _, v in pairs(Players:GetPlayers()) do createESP(v) end
 -- [[ Functions ]] --
 local function getPlayerList()
     local list = {}
-    for _, v in pairs(game:GetService("Players"):GetPlayers()) do
-        if v ~= game:GetService("Players").LocalPlayer then
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= Players.LocalPlayer then
             table.insert(list, v.Name)
         end
     end
     return list
 end
-game:GetService("Players").PlayerAdded:Connect(function()
-    task.wait(1) 
+
+local function rebuildDropdown()
     if pDropdown then
-        pDropdown:SetValues(getPlayerList())
+        pDropdown:Refresh(getPlayerList())
+        if selectedPlayer and not table.find(getPlayerList(), selectedPlayer) then
+            selectedPlayer = nil
+        end
     end
-end)
-game:GetService("Players").PlayerRemoving:Connect(function()
-    if pDropdown then
-        pDropdown:SetValues(getPlayerList())
-    end
-end)
+end
 
 -- Fly Smooth System
 local flyConnection, bv, bg
@@ -329,8 +329,6 @@ local pDropdown = TeleportTab:Dropdown({
     Values = getPlayerList(),
     Callback = function(name)
         selectedPlayer = name 
-        local target = Players:FindFirstChild(name)
-        if target and target.Character then end
     end
 })
 
