@@ -855,14 +855,12 @@ murderermystery2:Toggle({
     end
 })
 local killAllConnection = nil
-
 murderermystery2:Toggle({
     Title = "สังหารทุกคน (Murderer Only)",
     Desc = "เมื่อเป็นฆาตกร จะฆ่าทุกคนอัตโนมัติ",
     Value = false,
     Callback = function(state)
         _G.KillAllMM2 = state
-
         if not state then
             if killAllConnection then
                 killAllConnection:Disconnect()
@@ -871,13 +869,11 @@ murderermystery2:Toggle({
         else
             local function isMurderer()
                 local lp = game.Players.LocalPlayer
-                -- เช็คจาก playerData
                 if playerData and playerData[lp.Name] then
                     if tostring(playerData[lp.Name].Role) == "Murderer" then
                         return true
                     end
                 end
-                -- เช็คจาก Backpack/Character
                 if lp.Backpack:FindFirstChild("Knife") then return true end
                 if lp.Character and lp.Character:FindFirstChild("Knife") then return true end
                 return false
@@ -890,21 +886,19 @@ murderermystery2:Toggle({
                 local hrp = char:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
 
-                -- เช็คว่ามีมีดไหม
                 if not char:FindFirstChild("Knife") then
                     local hum = char:FindFirstChildOfClass("Humanoid")
                     if lp.Backpack:FindFirstChild("Knife") then
                         hum:EquipTool(lp.Backpack:FindFirstChild("Knife"))
                         task.wait(0.1)
                     else
-                        return -- ไม่มีมีด
+                        return
                     end
                 end
 
                 local knife = char:FindFirstChild("Knife")
                 if not knife then return end
 
-                -- วน Fling ทุกคน
                 for _, v in pairs(game.Players:GetPlayers()) do
                     if not _G.KillAllMM2 then break end
                     if v == lp then continue end
@@ -913,30 +907,30 @@ murderermystery2:Toggle({
                     local targetHRP = v.Character:FindFirstChild("HumanoidRootPart")
                     if not targetHRP then continue end
 
-                    -- เช็คว่าตายแล้วหรือยัง
+                    -- กรองเฉพาะ Innocent, Hero, Sheriff (ไม่ฆ่า Murderer เหมือนกัน)
                     if playerData and playerData[v.Name] then
                         if playerData[v.Name].Dead == true then continue end
+                        local role = tostring(playerData[v.Name].Role)
+                        if role == "Murderer" then continue end
+                    else
+                        -- ถ้าไม่มี playerData ให้เช็คจาก Knife แทน
+                        if v.Backpack:FindFirstChild("Knife") or
+                           (v.Character and v.Character:FindFirstChild("Knife")) then
+                            continue
+                        end
                     end
 
-                    -- TP ไปหาเป้าหมาย
                     local oldPos = hrp.CFrame
                     targetHRP.Anchored = true
-                    hrp.CFrame = CFrame.new(targetHRP.Position) * 
+                    hrp.CFrame = CFrame.new(targetHRP.Position) *
                         CFrame.new(0, 0, 2)
-
                     task.wait(0.1)
 
-                    -- ฆ่า
                     knife.Stab:FireServer("Slash")
-
                     task.wait(0.1)
 
-                    -- ปลด Anchor
                     targetHRP.Anchored = false
-
-                    -- กลับที่เดิม
                     hrp.CFrame = oldPos
-
                     task.wait(0.3)
                 end
             end
