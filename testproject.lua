@@ -189,6 +189,7 @@ local function getPlayerList()
     end
     return list
 end
+
 local function refreshDropdown()
     if pDropdown then
         local newList = getPlayerList()
@@ -199,6 +200,7 @@ local function refreshDropdown()
         end
     end
 end
+
 -- Fly Smooth System
 local flyConnection, bv, bg
 local function toggleFly(state)
@@ -338,7 +340,13 @@ local pDropdown = TeleportTab:Dropdown({
         if target and target.Character then end
     end
 })
-
+TeleportTab:Button({
+    Title = "อัปเดตรายชื่อ (Refresh)",
+    Desc = "กดเมื่อมีคนเข้าหรือออกจากเซิร์ฟเวอร์",
+    Callback = function()
+        pDropdown:SetValues(getPlayerList())
+    end
+})
 TeleportTab:Button({
     Title = "วาร์ปไปหาผู้เล่นที่เลือก",
     Desc = "คุณต้องเลือกชื่อจาก Dropdown ก่อนกด",
