@@ -270,7 +270,6 @@ local murderermystery2 = Window:Tab({ Title = "MM2", Icon = "geist:slash-forward
 local discordBTN = Window:Tab({ Title = "Discord Server", Icon = "geist:discord" }) 
 
 -- --- [ เมนูหลัก ] --- --
-MainTab:Section({ Title = "Movement / การเคลื่อนที่" })
 MainTab:Toggle({
     Title = "เปิด/ปิด วิ่งเร็ว",
     Value = false,
@@ -282,7 +281,6 @@ MainTab:Toggle({
      --   end
     end
 })
-
 MainTab:Slider({
     Title = "ความเร็ว (Speed/Fly)",
     Step = 1,
@@ -294,7 +292,6 @@ MainTab:Slider({
         end
     end
 })
-
 MainTab:Toggle({
     Title = "เปิด/ปิด กระโดดสูง",
     Value = false,
@@ -306,7 +303,6 @@ MainTab:Toggle({
         end
     end
 })
-
 MainTab:Slider({
     Title = "แรงกระโดด (Jump)",
     Step = 1,
@@ -318,7 +314,6 @@ MainTab:Slider({
         end
     end
 })
-
 MainTab:Toggle({
     Title = "บินทะลุกำแพง (Smooth Fly)",
     Value = false,
@@ -326,9 +321,6 @@ MainTab:Toggle({
 })
 
 -- --- [ เทเลพอร์ต ] --- --
-TeleportTab:Section({ Title = "Player Teleport" })
-
--- Dropdown เลือกผู้เล่น
 local pDropdown = TeleportTab:Dropdown({
     Title = "เลือกผู้เล่น",
     Desc = "ดึงรายชื่อผู้เล่นทั้งหมดในเซิร์ฟเวอร์",
@@ -465,9 +457,7 @@ PlayerVisible:Colorpicker({
     end
 })
 
-
 -- [[ ฟังก์ชั่นเถื่อน ]] --
-FlingLuck:Section({ Title = "เถื่อน (แนะนำอย่าเปิด มีผลกับไอดีตัวเอง)" })
 FlingLuck:Toggle({
     Title = "Fling Player",
     Desc = "เตะผู้เล่นออกจากแมพ > เลือกจากเมณูค้นหา Teleport",
