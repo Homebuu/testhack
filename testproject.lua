@@ -702,6 +702,73 @@ murderermystery2:Toggle({
         end
     end
 })
+
+local gunDropHighlight = nil
+local gunDropAddedConnection = nil
+local gunDropRemovedConnection = nil
+murderermystery2:Toggle({
+    Title = "แสดงปืนที่ตกพื้น",
+    Desc = "ไฮไลท์ปืนที่ถูกทิ้งไว้บนพื้น",
+    Value = false,
+    Callback = function(state)
+        _G.ShowGunDrop = state
+
+        local function createGunHighlight(obj)
+            if gunDropHighlight then
+                gunDropHighlight:Destroy()
+                gunDropHighlight = nil
+            end
+            gunDropHighlight = Instance.new("Highlight")
+            gunDropHighlight.Name = "GunDropHighlight"
+            gunDropHighlight.FillColor = Color3.fromRGB(255, 255, 0)
+            gunDropHighlight.FillTransparency = 0.3
+            gunDropHighlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            gunDropHighlight.OutlineTransparency = 0
+            gunDropHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            gunDropHighlight.Adornee = obj
+            gunDropHighlight.Parent = game:GetService("CoreGui")
+        end
+
+        if not state then
+            -- ปิด
+            if gunDropAddedConnection then
+                gunDropAddedConnection:Disconnect()
+                gunDropAddedConnection = nil
+            end
+            if gunDropRemovedConnection then
+                gunDropRemovedConnection:Disconnect()
+                gunDropRemovedConnection = nil
+            end
+            if gunDropHighlight then
+                gunDropHighlight:Destroy()
+                gunDropHighlight = nil
+            end
+        else
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj.Name == "GunDrop" then
+                    createGunHighlight(obj)
+                    break
+                end
+            end
+
+            gunDropAddedConnection = workspace.DescendantAdded:Connect(function(obj)
+                if obj.Name == "GunDrop" and _G.ShowGunDrop then
+                    createGunHighlight(obj)
+                end
+            end)
+
+            gunDropRemovedConnection = workspace.DescendantRemoving:Connect(function(obj)
+                if obj.Name == "GunDrop" and _G.ShowGunDrop then
+                    if gunDropHighlight then
+                        gunDropHighlight:Destroy()
+                        gunDropHighlight = nil
+                    end
+                end
+            end)
+        end
+    end
+})
+
 -- [[ Notification & Start ]] --
 WindUI:Notify({
     Title = "HG HUB V1",
