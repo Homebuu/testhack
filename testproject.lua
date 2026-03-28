@@ -504,12 +504,12 @@ FlingLuck:Toggle({
                             if part:IsA("BasePart") then part.CanCollide = false end
                         end
 
-                        hrp.Velocity = Vector3.new(0, 3000, 0)
-                        hrp.RotVelocity = Vector3.new(3000, 3000, 3000) 
-
-                        local jitter = Vector3.new(math.random(-1,1)/100, 0, math.random(-1,1)/100)
-                        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
-                        
+                       	hrp.Velocity = Vector3.new(9e7, 9e7, 9e7)
+					    hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+					
+					    local jitter = Vector3.new(math.random(-1,1)/100, 0, math.random(-1,1)/100)
+					    hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
+					                        
                         task.wait() 
                     end
                     
