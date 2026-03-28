@@ -836,83 +836,81 @@ murderermystery2:Toggle({
 })
 murderermystery2:Toggle({
     Title = "Fling Murderer",
-    Desc = "Fling ฆาตกรอัตโนมัติ",
+    Desc = "Fling ฆาตกรอัตโนมัติ (ระบบเช็คละเอียด + ไม่หลุดแมพ)",
     Value = false,
     Callback = function(state)
         _G.AutoFlingMurderer = state
-
         if state then
             task.spawn(function()
                 while _G.AutoFlingMurderer do
-                    task.wait(0.1)
+                    task.wait(0.1) -- เช็คทุกๆ 0.1 วินาทีตามที่คุณต้องการ
                     
+                    -- === ส่วนที่หายไป: การค้นหาฆาตกรแบบละเอียด ===
                     local murderer = nil
                     for _, v in pairs(game.Players:GetPlayers()) do
                         if v == game.Players.LocalPlayer then continue end
+                        
+                        -- 1. เช็คจาก Role ใน playerData (ถ้ามี)
                         if playerData and playerData[v.Name] then
                             if tostring(playerData[v.Name].Role) == "Murderer" then
                                 murderer = v
                                 break
                             end
                         end
-                        if v.Backpack:FindFirstChild("Knife") or 
-                           (v.Character and v.Character:FindFirstChild("Knife")) then
+                        
+                        -- 2. เช็คจากมีดใน Backpack หรือในตัวละคร
+                        if v.Backpack:FindFirstChild("Knife") or (v.Character and v.Character:FindFirstChild("Knife")) then
                             murderer = v
                             break
                         end
                     end
+                    -- ==========================================
 
+                    -- ถ้าไม่พบฆาตกร ให้ข้ามไปลูปถัดไป
                     if not murderer or not murderer.Character then continue end
 
                     local char = game.Players.LocalPlayer.Character
-                    if not char then continue end
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
+                    
+                    if hrp and hum and murderer.Character:FindFirstChild("HumanoidRootPart") then
+                        local murdererHRP = murderer.Character.HumanoidRootPart
+                        local originalCFrame = hrp.CFrame -- เก็บจุดเดิมไว้
+                        local startTime = tick()
 
-                    local hrp = char:FindFirstChild("HumanoidRootPart")
-                    local hum = char:FindFirstChildOfClass("Humanoid")
-                    if not hrp or not hum then continue end
+                        -- ปิด Collision เพื่อไม่ให้ตัวเราขัดขวางฟิสิกส์ตัวเอง
+                        for _, part in pairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then part.CanCollide = false end
+                        end
 
-                    local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
-                    local murdererHum = murderer.Character:FindFirstChildOfClass("Humanoid")
-                    if not murdererHRP or not murdererHum then continue end
+                        -- เริ่มกระบวนการ Fling
+                        repeat
+                            if not _G.AutoFlingMurderer or not murdererHRP.Parent then break end
+                            
+                            -- ใช้แรงดีดสะสม (หัวใจหลักจากอันแรกที่คุณว่าดี)
+                            hrp.Velocity = Vector3.new(0, 5000, 0)
+                            hrp.RotVelocity = Vector3.new(5000, 5000, 5000)
+                            
+                            -- วาร์ปไปตำแหน่งเป้าหมาย + Jitter เล็กน้อย
+                            local jitter = Vector3.new(math.random(-1,1)/100, 0, math.random(-1,1)/100)
+                            hrp.CFrame = murdererHRP.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
+                            
+                            task.wait()
+                        -- หยุดเมื่อเป้าหมายกระเด็น (Velocity สูง) หรือเวลาเกิน 3 วินาที
+                        until (murdererHRP.AssemblyLinearVelocity.Magnitude > 200) or (tick() - startTime > 3) or not _G.AutoFlingMurderer
 
-                    local oldPos = hrp.CFrame
-
-                    workspace.FallenPartsDestroyHeight = 0/0
-
-                    local bv = Instance.new("BodyVelocity")
-                    bv.Velocity = Vector3.new(9e8, 9e8, 9e8)
-                    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                    bv.Parent = hrp
-
-                    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-
-                    local angle = 0
-                    local startTime = tick()
-
-                    repeat
-                        angle = angle + 100
-                      
-						local jitter = Vector3.new(math.random(-1,1)/100, 0, math.random(-1,1)/100)
-                        hrp.CFrame = CFrame.new(murdererHRP.Position)  * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)		
-                        hrp.Velocity = Vector3.new(0, 5000, 0)
-                        hrp.RotVelocity = Vector3.new(5000, 5000, 5000)
-                        task.wait()
-                    until murdererHRP.AssemblyLinearVelocity.Magnitude > 500 
-                        or not _G.AutoFlingMurderer
-                        or tick() - startTime > 3
-
-                    bv:Destroy()
-                    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-
-                    repeat
-                        hrp.CFrame = oldPos * CFrame.new(0, 0.5, 0)
-                        hum:ChangeState("GettingUp")
-                        task.wait()
-                    until (hrp.Position - oldPos.p).Magnitude < 25
-
-                    workspace.FallenPartsDestroyHeight = -500
-
-                    task.wait(2) 
+                        -- เคลียร์แรงและวาร์ปกลับที่เดิม (กันเราหลุดแมพ)
+                        hrp.Velocity = Vector3.zero
+                        hrp.RotVelocity = Vector3.zero
+                        hrp.CFrame = originalCFrame
+                        
+                        for _, part in pairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then part.CanCollide = true end
+                        end
+                        
+                        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+                        task.wait(1) -- คูลดาวน์เล็กน้อยก่อนเช็คใหม่
+                    end
                 end
             end)
         end
