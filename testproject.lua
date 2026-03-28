@@ -329,6 +329,69 @@ MainTab:Toggle({
 TeleportTab:Section({ Title = "Player Teleport" })
 
 -- Dropdown เลือกผู้เล่น
+local function teleportToPlayer(targetPlayer)
+    local char = player.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        root.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame
+    end
+end
+
+local function createTPPlayerMenu()
+    local menuGui = PlayerGui:FindFirstChild("TPPlayerMenu")
+    if menuGui then menuGui:Destroy() end
+
+    menuGui = Instance.new("ScreenGui")
+    menuGui.Name = "TPPlayerMenu"
+    menuGui.Parent = PlayerGui
+    menuGui.ResetOnSpawn = false
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 200, 0, 300)
+    frame.Position = UDim2.new(0.5, -100, 0.3, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    frame.Parent = menuGui
+
+    local layout = Instance.new("UIListLayout")
+    layout.Parent = frame
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 5)
+
+    -- ดึงรายชื่อผู้เล่น ณ ตอนกดปุ่ม = real-time ทันที
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= player then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, 0, 0, 30)
+            btn.Text = plr.Name
+            btn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.Parent = frame
+            btn.MouseButton1Click:Connect(function()
+                teleportToPlayer(plr)
+                menuGui:Destroy()
+            end)
+        end
+    end
+
+    -- ปุ่มปิด
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(1, 0, 0, 30)
+    closeBtn.Text = "❌ ปิด"
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Parent = frame
+    closeBtn.MouseButton1Click:Connect(function()
+        menuGui:Destroy()
+    end)
+end
+
+TeleportTab:Button({
+    Title = "เลือกผู้เล่น (Real-time)",
+    Desc = "กดเพื่อเปิดรายชื่อผู้เล่นในเซิร์ฟเวอร์",
+    Callback = createTPPlayerMenu
+})
 local pDropdown = TeleportTab:Dropdown({
     Title = "เลือกผู้เล่น",
     Desc = "ดึงรายชื่อผู้เล่นทั้งหมดในเซิร์ฟเวอร์",
