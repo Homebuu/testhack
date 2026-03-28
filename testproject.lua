@@ -620,34 +620,39 @@ if remote then
         end
     end)
 end
-
 local function getMM2Role(v)
     if playerData and playerData[v.Name] then
         local data = playerData[v.Name]
         
-        if data.Dead == true or data.Killed == true then 
-            return nil 
-        end
-
         local role = tostring(data.Role)
+        
         if role == "Murderer" then
-            return {Type = "Murderer", Color = Color3.fromRGB(255, 0, 0)}     -- แดง
+            return {Type = "Murderer", Color = Color3.fromRGB(255, 0, 0)}
         elseif role == "Sheriff" then
-            return {Type = "Sheriff", Color = Color3.fromRGB(0, 150, 255)}   -- ฟ้า
+            return {Type = "Sheriff", Color = Color3.fromRGB(0, 150, 255)}
         elseif role == "Hero" then
-            return {Type = "Hero", Color = Color3.fromRGB(255, 255, 0)}      -- เหลือง
+            return {Type = "Hero", Color = Color3.fromRGB(255, 255, 0)}
         end
+        -- Innocent ไม่ต้องแสดง
     end
-    
+
+    if v.Backpack:FindFirstChild("Knife") then
+        return {Type = "Murderer", Color = Color3.fromRGB(255, 0, 0)}
+    end
+    if v.Backpack:FindFirstChild("Gun") then
+        return {Type = "Sheriff", Color = Color3.fromRGB(0, 150, 255)}
+    end
+
     local char = v.Character
     if char then
-        local tool = char:FindFirstChildWhichIsA("Tool", true)
-        if tool then
-            local n = tool.Name:lower()
-            if n:find("knife") then return {Type = "Murderer", Color = Color3.fromRGB(255, 0, 0)} end
-            if n:find("gun") or n:find("revolver") then return {Type = "Sheriff", Color = Color3.fromRGB(0, 150, 255)} end
+        if char:FindFirstChild("Knife") then
+            return {Type = "Murderer", Color = Color3.fromRGB(255, 0, 0)}
+        end
+        if char:FindFirstChild("Gun") then
+            return {Type = "Sheriff", Color = Color3.fromRGB(0, 150, 255)}
         end
     end
+
     return nil
 end
 local function updateHighlights()
@@ -657,14 +662,13 @@ local function updateHighlights()
         if char then
             local roleInfo = getMM2Role(v)
             local highlight = char:FindFirstChild("RoleHighlight")
-
             if _G.ShowRolesMM2 and roleInfo then
                 if not highlight then
                     highlight = Instance.new("Highlight", char)
                     highlight.Name = "RoleHighlight"
                 end
                 highlight.FillColor = roleInfo.Color
-                highlight.FillOpacity = 0.5
+                highlight.FillTransparency = 0.5
                 highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
                 highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
                 highlight.Enabled = true
