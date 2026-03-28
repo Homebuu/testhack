@@ -891,11 +891,11 @@ murderermystery2:Toggle({
 
                     repeat
                         angle = angle + 100
-                        hrp.CFrame = CFrame.new(murdererHRP.Position) * 
-                            CFrame.new(0, 1.5, 0) * 
-                            CFrame.Angles(math.rad(angle), 0, 0)
-                        hrp.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
-                        hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+                      
+						local jitter = Vector3.new(math.random(-1,1)/100, 0, math.random(-1,1)/100)
+                        hrp.CFrame = CFrame.new(murdererHRP.Position)  * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)		
+                        hrp.Velocity = Vector3.new(0, 5000, 0)
+                        hrp.RotVelocity = Vector3.new(5000, 5000, 5000)
                         task.wait()
                     until murdererHRP.AssemblyLinearVelocity.Magnitude > 500 
                         or not _G.AutoFlingMurderer
