@@ -181,24 +181,24 @@ for _, v in pairs(Players:GetPlayers()) do createESP(v) end
 -- [[ Functions ]] --
 local function getPlayerList()
     local list = {}
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= Players.LocalPlayer then
+    for _, v in pairs(game:GetService("Players"):GetPlayers()) do
+        if v ~= game:GetService("Players").LocalPlayer then
             table.insert(list, v.Name)
         end
     end
     return list
 end
-
-local function refreshDropdown()
+game:GetService("Players").PlayerAdded:Connect(function()
+    task.wait(1) 
     if pDropdown then
-        local newList = getPlayerList()
-        pDropdown:SetValues(newList)
-        if selectedPlayer and not table.find(newList, selectedPlayer) then
-            selectedPlayer = nil
-            pDropdown:SetValue(nil)
-        end
+        pDropdown:SetValues(getPlayerList())
     end
-end
+end)
+game:GetService("Players").PlayerRemoving:Connect(function()
+    if pDropdown then
+        pDropdown:SetValues(getPlayerList())
+    end
+end)
 
 -- Fly Smooth System
 local flyConnection, bv, bg
@@ -320,38 +320,18 @@ MainTab:Toggle({
 })
 
 -- --- [ เทเลพอร์ต ] --- --
-local teleportSection = TeleportTab:Section({ Title = "เลือกผู้เล่น" })
-local pDropdown = nil
-local function rebuildDropdown()
-    if pDropdown then
-        pDropdown:Destroy()
-        pDropdown = nil
-    end
-    pDropdown = TeleportTab:Dropdown({
-        Title = "เลือกผู้เล่น",
-        Desc = "ดึงรายชื่อผู้เล่นทั้งหมดในเซิร์ฟเวอร์",
-        Multi = false,
-        Values = getPlayerList(),
-        Callback = function(name)
-            selectedPlayer = name
-        end
-    })
-end
-
--- สร้างครั้งแรก
-rebuildDropdown()
---[[
 local pDropdown = TeleportTab:Dropdown({
     Title = "เลือกผู้เล่น",
     Desc = "ดึงรายชื่อผู้เล่นทั้งหมดในเซิร์ฟเวอร์",
     Multi = false,
     Values = getPlayerList(),
     Callback = function(name)
-        selectedPlayer = name
+        selectedPlayer = name 
         local target = Players:FindFirstChild(name)
         if target and target.Character then end
     end
-})]]--
+})
+
 TeleportTab:Button({
     Title = "อัปเดตรายชื่อ (Refresh)",
     Desc = "กดเมื่อมีคนเข้าหรือออกจากเซิร์ฟเวอร์",
@@ -359,6 +339,7 @@ TeleportTab:Button({
         pDropdown:SetValues(getPlayerList())
     end
 })
+
 TeleportTab:Button({
     Title = "วาร์ปไปหาผู้เล่นที่เลือก",
     Desc = "คุณต้องเลือกชื่อจาก Dropdown ก่อนกด",
