@@ -776,7 +776,97 @@ murderermystery2:Toggle({
         end
     end
 })
+murderermystery2:Toggle({
+    Title = "Fling Murderer",
+    Desc = "Fling ฆาตกรอัตโนมัติ",
+    Value = false,
+    Callback = function(state)
+        _G.AutoFlingMurderer = state
 
+        if state then
+            task.spawn(function()
+                while _G.AutoFlingMurderer do
+                    task.wait(0.1)
+                    
+                    -- หาฆาตกร
+                    local murderer = nil
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v == game.Players.LocalPlayer then continue end
+                        -- เช็คจาก playerData
+                        if playerData and playerData[v.Name] then
+                            if tostring(playerData[v.Name].Role) == "Murderer" then
+                                murderer = v
+                                break
+                            end
+                        end
+                        -- เช็คจาก Backpack/Character
+                        if v.Backpack:FindFirstChild("Knife") or 
+                           (v.Character and v.Character:FindFirstChild("Knife")) then
+                            murderer = v
+                            break
+                        end
+                    end
+
+                    if not murderer or not murderer.Character then continue end
+
+                    local char = game.Players.LocalPlayer.Character
+                    if not char then continue end
+
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if not hrp or not hum then continue end
+
+                    local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
+                    local murdererHum = murderer.Character:FindFirstChildOfClass("Humanoid")
+                    if not murdererHRP or not murdererHum then continue end
+
+                    -- บันทึก Position เดิม
+                    local oldPos = hrp.CFrame
+
+                    -- Fling
+                    workspace.FallenPartsDestroyHeight = 0/0
+
+                    local bv = Instance.new("BodyVelocity")
+                    bv.Velocity = Vector3.new(9e8, 9e8, 9e8)
+                    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bv.Parent = hrp
+
+                    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+
+                    local angle = 0
+                    local startTime = tick()
+
+                    repeat
+                        angle = angle + 100
+                        -- วนรอบฆาตกร
+                        hrp.CFrame = CFrame.new(murdererHRP.Position) * 
+                            CFrame.new(0, 1.5, 0) * 
+                            CFrame.Angles(math.rad(angle), 0, 0)
+                        hrp.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+                        hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+                        task.wait()
+                    until murdererHRP.AssemblyLinearVelocity.Magnitude > 500 
+                        or not _G.AutoFlingMurderer
+                        or tick() - startTime > 3
+
+                    bv:Destroy()
+                    hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+
+                    -- กลับ Position เดิม
+                    repeat
+                        hrp.CFrame = oldPos * CFrame.new(0, 0.5, 0)
+                        hum:ChangeState("GettingUp")
+                        task.wait()
+                    until (hrp.Position - oldPos.p).Magnitude < 25
+
+                    workspace.FallenPartsDestroyHeight = -500
+
+                    task.wait(2) -- cooldown ก่อน Fling ใหม่
+                end
+            end)
+        end
+    end
+})
 -- [[ Notification & Start ]] --
 WindUI:Notify({
     Title = "HG HUB V1",
