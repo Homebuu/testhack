@@ -464,73 +464,81 @@ PlayerVisible:Colorpicker({
 -- [[ ฟังก์ชั่นเถื่อน ]] --
 FlingLuck:Toggle({
     Title = "Fling Player",
-    Desc = "เตะผู้เล่นออกจากแมพ > เลือกจากเมณูค้นหา Teleport",
+    Desc = "เตะผู้เล่นออกจากแมพ > เลือกจากเมนู Teleport",
     Value = false,
     Callback = function(state)
         flingEnabled = state
-        
-        local char = player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        
-        if flingEnabled then
-            if selectedPlayer == "" or selectedPlayer == nil then
-                WindUI:Notify({
-                    Title = "Error!",
-                    Content = "กรุณาเลือกผู้เล่นก่อน!",
-                    Duration = 4,
-                    Type = "Error"
-                })
-                return
-            end
 
-            local target = Players:FindFirstChild(selectedPlayer)
-            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                
-                local originalCFrame = hrp.CFrame
-                
-                task.spawn(function()
-                    WindUI:Notify({
-                        Title = "Flinging...",
-                        Content = "กำลังส่ง " .. selectedPlayer .. " ไปนอกโลก",
-                        Duration = 3,
-                        Type = "Warning"
-                    })
+        if not state then return end
 
-                    while flingEnabled and char and hrp and target and target.Character do
-                        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-                        if not targetHrp then break end
-                        
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then part.CanCollide = false end
-                        end
-
-                        hrp.Velocity = Vector3.new(0, 3000, 0)
-                        hrp.RotVelocity = Vector3.new(3000, 3000, 3000) 
-
-                        local jitter = Vector3.new(math.random(-1,1)/100, 0, math.random(-1,1)/100)
-                        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
-                        
-                        task.wait() 
-                    end
-                    
-                    if hrp then
-                        hrp.Velocity = Vector3.zero
-                        hrp.RotVelocity = Vector3.zero
-                        hrp.CFrame = originalCFrame
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then part.CanCollide = true end
-                        end
-                    end
-                end)
-            else
-                WindUI:Notify({
-                    Title = "Error!",
-                    Content = "ไม่พบตัวละครเป้าหมาย",
-                    Duration = 4,
-                    Type = "Error"
-                })
-            end
+        if selectedPlayer == "" or selectedPlayer == nil then
+            WindUI:Notify({
+                Title = "Error!",
+                Content = "กรุณาเลือกผู้เล่นก่อน!",
+                Duration = 4,
+                Type = "Error"
+            })
+            flingEnabled = false
+            return
         end
+
+        task.spawn(function()
+            while flingEnabled do
+                task.wait(0.1)
+
+                local target = Players:FindFirstChild(selectedPlayer)
+                if not target or not target.Character then continue end
+
+                local char = player.Character
+                if not char then continue end
+
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if not hrp or not hum then continue end
+
+                local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+                if not targetHRP then continue end
+
+                local oldPos = hrp.CFrame
+
+                workspace.FallenPartsDestroyHeight = 0/0
+
+                local bv = Instance.new("BodyVelocity")
+                bv.Velocity = Vector3.new(9e8, 9e8, 9e8)
+                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bv.Parent = hrp
+
+                hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+
+                local angle = 0
+                local startTime = tick()
+
+                repeat
+                    angle = angle + 100
+                    hrp.CFrame = CFrame.new(targetHRP.Position) *
+                        CFrame.new(0, 1.5, 0) *
+                        CFrame.Angles(math.rad(angle), 0, 0)
+                    hrp.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+                    hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+                    task.wait()
+                until targetHRP.AssemblyLinearVelocity.Magnitude > 500
+                    or not flingEnabled
+                    or tick() - startTime > 3
+
+                bv:Destroy()
+                hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+
+                repeat
+                    hrp.CFrame = oldPos * CFrame.new(0, 0.5, 0)
+                    hum:ChangeState("GettingUp")
+                    task.wait()
+                until (hrp.Position - oldPos.p).Magnitude < 25
+
+                workspace.FallenPartsDestroyHeight = -500
+
+                task.wait(2)
+            end
+        end)
     end
 })
 
