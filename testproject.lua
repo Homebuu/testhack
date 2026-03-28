@@ -182,23 +182,31 @@ for _, v in pairs(Players:GetPlayers()) do createESP(v) end
 -- [[ Functions ]] --
 local function getPlayerList()
     local list = {}
-    for _, v in pairs(game:GetService("Players"):GetPlayers()) do
-        if v ~= game:GetService("Players").LocalPlayer then
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= Players.LocalPlayer then
             table.insert(list, v.Name)
         end
     end
     return list
 end
-game:GetService("Players").PlayerAdded:Connect(function()
-    task.wait(1) 
+local function refreshDropdown()
     if pDropdown then
-        pDropdown:SetValues(getPlayerList())
+        local newList = getPlayerList()
+        pDropdown:SetValues(newList)
+
+        if selectedPlayer and not table.find(newList, selectedPlayer) then
+            selectedPlayer = nil
+            pDropdown:SetValue(nil) 
+        end
     end
+end
+Players.PlayerAdded:Connect(function()
+    task.wait(1)
+    refreshDropdown()
 end)
-game:GetService("Players").PlayerRemoving:Connect(function()
-    if pDropdown then
-        pDropdown:SetValues(getPlayerList())
-    end
+Players.PlayerRemoving:Connect(function(player)
+    task.wait(0.1) 
+    refreshDropdown()
 end)
 
 -- Fly Smooth System
