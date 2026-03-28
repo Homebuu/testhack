@@ -62,7 +62,7 @@ local flingEnabled = false
 local orbitAngle = 0
 
 local playerData = {}
-local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("PlayerDataChanged")
+--local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("PlayerDataChanged")
 
 -- [[ ESP Variables ]] --
 local espSettings = { Names = false, Boxes = false, Lines = false, Color = Color3.fromRGB(255, 255, 255) }
@@ -597,6 +597,7 @@ discordBTN:Button({
 })
 
 -- [[ function ]] -- 
+--[[
 if remote then
     remote.OnClientEvent:Connect(function(data)
         playerData = data
@@ -604,7 +605,7 @@ if remote then
             updateHighlights() 
         end
     end)
-end
+end]]--
 local function getMM2Role(v)
     if playerData and playerData[v.Name] then
         local data = playerData[v.Name]
