@@ -846,14 +846,12 @@ murderermystery2:Toggle({
         if _G.AutoFlingMurderer then
             task.spawn(function()
                 while _G.AutoFlingMurderer and char and hrp do
-                    task.wait(0.1) -- เช็คฆาตกรทุกๆ 0.1 วินาที
+                    task.wait(0.1) 
                     
-                    -- [ ส่วนการค้นหาเป้าหมาย: เฉพาะ Murderer ]
                     local targetPlayer = nil
                     for _, v in pairs(game.Players:GetPlayers()) do
                         if v == game.Players.LocalPlayer or not v.Character then continue end
                         
-                        -- เช็คจาก Data Role หรือ เช็คจากมีด
                         local isMurderer = false
                         if playerData and playerData[v.Name] and tostring(playerData[v.Name].Role) == "Murderer" then
                             isMurderer = true
@@ -867,10 +865,9 @@ murderermystery2:Toggle({
                         end
                     end
 
-                    -- [ ส่วนการ Fling: ใช้ Logic เดียวกับ Fling Player ]
                     if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                         local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        local originalCFrame = hrp.CFrame -- เก็บพิกัดเดิมไว้กลับมา
+                        local originalCFrame = hrp.CFrame
                         
                         WindUI:Notify({
                             Title = "Target Found!",
@@ -878,29 +875,22 @@ murderermystery2:Toggle({
                             Duration = 3,
                             Type = "Warning"
                         })
-
-                        -- ลูปการดีด (เหมือนสคริปต์แรกที่คุณส่งมา)
                         local startTime = tick()
                         while _G.AutoFlingMurderer and targetHrp.Parent and (tick() - startTime < 3) do
-                            -- ปิดการชนกัน
                             for _, part in pairs(char:GetDescendants()) do
                                 if part:IsA("BasePart") then part.CanCollide = false end
                             end
 
-                            -- พลังทำลายล้าง (Velocity & RotVelocity)
-                            hrp.Velocity = Vector3.new(0, 3000, 0)
-                            hrp.RotVelocity = Vector3.new(3000, 3000, 3000) 
+                            hrp.Velocity = Vector3.new(0, 10000, 0)
+                            hrp.RotVelocity = Vector3.new(5000, 5000, 5000) 
                             
-                            -- วาร์ปไปที่เป้าหมาย + Jitter
-                            local jitter = Vector3.new(math.random(-1,1)/100, 0, math.random(-1,1)/100)
-                            hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
+						  	local jitter = Vector3.new(math.random(-2,2)/100, 0, math.random(-2,2)/100)
+                            hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.2, 0) * CFrame.new(jitter)
                             
-                            -- ถ้าเป้าหมายกระเด็นไปไกลแล้ว ให้หยุด
                             if targetHrp.AssemblyLinearVelocity.Magnitude > 150 then break end
                             task.wait() 
                         end
 
-                        -- จบการ Fling แล้ววาร์ปกลับจุดเดิมทันที
                         hrp.Velocity = Vector3.zero
                         hrp.RotVelocity = Vector3.zero
                         hrp.CFrame = originalCFrame
@@ -909,7 +899,7 @@ murderermystery2:Toggle({
                             if part:IsA("BasePart") then part.CanCollide = true end
                         end
                         
-                        task.wait(1.5) -- คูลดาวน์เพื่อป้องกันการโดนเตะออกจากเซิร์ฟ
+                        task.wait(1.5) 
                     end
                 end
             end)
