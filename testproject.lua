@@ -430,7 +430,7 @@ Players.PlayerRemoving:Connect(function(leavingPlayer)
     rebuildDropdown()
 end)
 
-PlayerVisible:Section({ Title = "Player Visuals" })
+-- [[ ESP ]] --
 PlayerVisible:Toggle({
     Title = "เปิด/ปิด แสดงชื่อ (ESP Name)",
     Value = false,
