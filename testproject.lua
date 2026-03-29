@@ -842,62 +842,56 @@ murderermystery2:Toggle({
         _G.AutoFlingMurderer = state
         local char = game.Players.LocalPlayer.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        
         if _G.AutoFlingMurderer then
             task.spawn(function()
                 while _G.AutoFlingMurderer and char and hrp do
                     task.wait(0.1) 
-                    
                     local targetPlayer = nil
                     for _, v in pairs(game.Players:GetPlayers()) do
                         if v == game.Players.LocalPlayer or not v.Character then continue end
-                        if (playerData and playerData[v.Name] and tostring(playerData[v.Name].Role) == "Murderer") or 
-                           (v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife")) then
+                        local isMurderer = false
+                        if playerData and playerData[v.Name] and tostring(playerData[v.Name].Role) == "Murderer" then
+                            isMurderer = true
+                        elseif v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
+                            isMurderer = true
+                        end
+                        if isMurderer then
                             targetPlayer = v
                             break
                         end
                     end
-
                     if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                         local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
                         local originalCFrame = hrp.CFrame
-                        
-                        -- เปลี่ยน State เป็น Physics (สำคัญมากสำหรับการเตะคนกลางอากาศ)
-                        hum:ChangeState(Enum.HumanoidStateType.Physics)
-                        
-                        local startTime = tick()
-                        -- ใช้ลูปหมุนตัวแปรผันตามแกน (Spin Technique)
-                        while _G.AutoFlingMurderer and targetHrp.Parent and (tick() - startTime < 3) do
-                            for _, part in pairs(char:GetDescendants()) do
-                                if part:IsA("BasePart") then part.CanCollide = false end
-                            end
+                        WindUI:Notify({
+                            Title = "Target Found!",
+                            Content = "กำลังส่งฆาตกร (" .. targetPlayer.Name .. ") ไปนอกโลก",
+                            Duration = 3,
+                            Type = "Warning"
+                        })
+						hum:ChangeState(Enum.HumanoidStateType.Physics)
+				 	local startTime = tick()
+                    while _G.AutoFlingMurderer and targetHrp.Parent and (tick() - startTime < 3) do
+                        for _, part in pairs(char:GetDescendants()) do
+                        	if part:IsA("BasePart") then part.CanCollide = false end
+                        end
+                        hrp.Velocity = Vector3.new(0, 10000, 0)
+                        hrp.RotVelocity = Vector3.new(5000, 5000, 5000) 
 
-                            -- บังคับแรงดีดมหาศาล (เพิ่มค่าขึ้นเพื่อให้ "ดีด" แม้ไม่มีพื้น)
-                            hrp.Velocity = Vector3.new(0, 15000, 0) -- แรงดันขึ้น
-                            hrp.RotVelocity = Vector3.new(10000, 10000, 10000) -- หมุนทุกทิศทาง
-                            
-                            -- แก้จุดวาร์ป: ถ้าเขากระโดด เราต้องวาร์ปไปกระแทกตรง "พุง" หรือ "หน้าอก" (เยื้องไปข้างหลังนิดนึง)
-                            -- การใช้ CFrame.Angles จะทำให้ตัวเราหมุนเป็นกงจักรใส่เป้าหมาย
-                            local spinAngle = tick() * 20 -- หมุนไปเรื่อยๆ ตามเวลา
-                            hrp.CFrame = targetHrp.CFrame * CFrame.Angles(spinAngle, spinAngle, 0) * CFrame.new(0, 0, 0.5)
-                            
-                            -- เช็คว่าเขาปลิวหรือยัง (ปรับค่าให้สูงขึ้นนิดนึงเพื่อความมั่นใจ)
-                            if targetHrp.AssemblyLinearVelocity.Magnitude > 200 then break end
+ 					 	local jitter = Vector3.new(math.random(-2,2)/100, 0, math.random(-2,2)/100)
+                        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.2, 0) * CFrame.new(jitter)
+									
+                        if targetHrp.AssemblyLinearVelocity.Magnitude > 150 then break end
                             task.wait() 
                         end
-
-                        -- หยุดและวาร์ปกลับ
                         hrp.Velocity = Vector3.zero
                         hrp.RotVelocity = Vector3.zero
                         hrp.CFrame = originalCFrame
-                        
                         for _, part in pairs(char:GetDescendants()) do
                             if part:IsA("BasePart") then part.CanCollide = true end
                         end
-                        
-                        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-                        task.wait(1) 
+
+                        task.wait(1.5) 
                     end
                 end
             end)
