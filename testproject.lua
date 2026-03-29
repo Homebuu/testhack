@@ -543,46 +543,37 @@ FlingLuck:Toggle({
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                 local originalCFrame = hrp.CFrame
 					
-                task.spawn(function()
+                -- [[ ส่วนหนึ่งของลูปในฟังก์ชัน Fling ]] --
+				task.spawn(function()
 				    local angle = 0 
-				    while stopFling and char and hrp and target and target.Character do
+				    while flingEnabled and char and hrp and target and target.Character do
 				        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
 				        if not targetHrp then break end
 				
-				        -- 1. เช็คถ้าศัตรูกระเด็นไปไกลแล้ว (ความเร็วเกิน 200) ให้หยุดทำงานเพื่อไม่ให้เราบินตาม
-				        if targetHrp.Velocity.Magnitude > 200 then 
+				        if targetHrp.AssemblyLinearVelocity.Magnitude > 200 then 
 				            break 
 				        end
 				        
-				        -- 2. ปิดกฎฟิสิกส์การชนของตัวเราชั่วคราว
 				        for _, part in pairs(char:GetDescendants()) do
 				            if part:IsA("BasePart") then part.CanCollide = false end
 				        end
 				
-				        -- 3. ทำให้ตัวเราหมุนรอบตัวเอง (Spin) ด้วยความเร็วสูงมาก
-				        -- ใช้ AngularVelocity หรือตั้งค่า RotVelocity โดยตรง
-				        hrp.RotVelocity = Vector3.new(0, 10000, 0) -- หมุนแกน Y อย่างรวดเร็ว
-				        hrp.Velocity = Vector3.new(0, 5000, 0)    -- พยายามรักษาแรงยกตัว
-				
-				        -- 4. คำนวณการเคลื่อนที่แบบวงกลมรอบเป้าหมาย (Orbit)
-				        angle = angle + 1.0  -- ความเร็วในการโคจร (ปรับเพิ่มได้)
-				        local radius = 0.5   -- ระยะห่างจากกลางตัวศัตรู (ยิ่งน้อยยิ่งชิด)
+				         hrp.Velocity = Vector3.new(0, 15000, 0)
+						hrp.RotVelocity = Vector3.new(10000, 10000, 10000)
+
+				        angle = angle + 0.8 
+				        local radius = 0.8  
+				        local offset = Vector3.new(math.cos(angle) * radius, -1.5, math.sin(angle) * radius)
 				        
-				        -- คัดลอกตำแหน่งเป้าหมายและคำนวณจุดรอบตัว
-				        local offset = Vector3.new(math.cos(angle) * radius, -1.2, math.sin(angle) * radius)
-				        
-				        -- 5. อัปเดตตำแหน่งและมุมหมุนของตัวเรา
-				        -- CFrame.fromEulerAnglesXYZ ทำให้ตัวเราหมุนควงขณะเคลื่อนที่
-				        hrp.CFrame = CFrame.new(targetHrp.Position + offset) * CFrame.fromEulerAnglesXYZ(angle*10, angle*10, angle*10)
+				        hrp.CFrame = targetHrp.CFrame * CFrame.new(offset)
 				        
 				        task.wait() 
 				    end
 				    
-				    -- เมื่อเลิกทำ หรือศัตรูปลิวไปแล้ว ให้รีเซ็ตสถานะตัวเรา
 				    if hrp then
-				        hrp.Velocity = Vector3.new(0, 0, 0)
-				        hrp.RotVelocity = Vector3.new(0, 0, 0)
-				        hrp.CFrame = originalCFrame -- กลับไปจุดเริ่มต้น
+				        hrp.Velocity = Vector3.zero
+				        hrp.RotVelocity = Vector3.zero
+				        hrp.CFrame = originalCFrame
 				        for _, part in pairs(char:GetDescendants()) do
 				            if part:IsA("BasePart") then part.CanCollide = true end
 				        end
@@ -1067,9 +1058,9 @@ murderermystery2:Toggle({
                                 if part:IsA("BasePart") then part.CanCollide = false end
                             end
 
-                            hrp.Velocity = Vector3.new(0, 15000, 0)
-                            hrp.RotVelocity = Vector3.new(10000, 10000, 10000)
-
+                            hrp.Velocity = Vector3.new(0, 35000, 0)
+                            hrp.RotVelocity = Vector3.new(20000, 20000, 20000)
+									
                             local jitter = Vector3.new(math.random(-2,2)/100, 0, math.random(-2,2)/100)
                             hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
 
@@ -1140,8 +1131,8 @@ murderermystery2:Toggle({
                                 if part:IsA("BasePart") then part.CanCollide = false end
                             end
 
-                            hrp.Velocity = Vector3.new(0, 15000, 0)
-                            hrp.RotVelocity = Vector3.new(10000, 10000, 10000)
+                            hrp.Velocity = Vector3.new(0, 35000, 0)
+                            hrp.RotVelocity = Vector3.new(20000, 20000, 20000)
 
                             local jitter = Vector3.new(math.random(-2,2)/100, 0, math.random(-2,2)/100)
                             hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
