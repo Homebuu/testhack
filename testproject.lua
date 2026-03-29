@@ -73,6 +73,8 @@ local playerData = {}
 local flingAllEnabled = false
 local pDropdown = nil
 
+game:GetService("TextChatService"):WaitForChild("TextChannels"):WaitForChild("RBXGeneral"):SendAsync("สวัสดี, ฉันรู้สึกดีมากๆ มันเป็นแมพที่ดี <3")
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 if game.PlaceId == 142823291 then 
 	local remote = ReplicatedStorage
