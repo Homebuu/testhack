@@ -717,7 +717,7 @@ local function cleanUpGhost()
 end
 
 FlingLuck:Toggle({
-    Title = "Ghost Mode",
+    Title = "Ghost Mode V1",
     Desc = "of god of year of regenzy",
     Value = false,
     Callback = function(state)
