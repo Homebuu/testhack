@@ -680,6 +680,8 @@ discordBTN:Button({
 })
 
 -- [[ function ]] -- 
+local lp = game.Players.LocalPlayer
+local rs = game:GetService("ReplicatedStorage")
 
 if remote then
     remote.OnClientEvent:Connect(function(data)
@@ -749,7 +751,7 @@ local function updateHighlights()
 end
 local function getMurderer()
     for _, v in pairs(game.Players:GetPlayers()) do
-        if v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+        if v ~= lp and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
             local isMurd = false
             if _G.playerData and _G.playerData[v.Name] then
                 if tostring(_G.playerData[v.Name].Role) == "Murderer" and not _G.playerData[v.Name].Dead then
@@ -767,17 +769,18 @@ local OldNameCall
 OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
-
     if _G.KillMurdererOnly and method == "FireServer" and tostring(self) == "GunFired" then
-        local targetChar = getMurderer() 
+        local targetChar = getMurderer()
         if targetChar and targetChar:FindFirstChild("Head") then
             local targetHead = targetChar.Head
+            local gun = lp.Character and lp.Character:FindFirstChild("Gun")
             
-            args[2] = tostring(game.Players.LocalPlayer.Character.Gun.Handle.Position)
-            args[3] = tostring(targetHead.Position) 
-            args[4] = targetHead 
-            
-            return OldNameCall(self, unpack(args))
+            if gun and gun:FindFirstChild("Handle") then
+                args[2] = tostring(gun.Handle.Position)
+                args[3] = tostring(targetHead.Position)
+                args[4] = targetHead
+                return OldNameCall(self, unpack(args))
+            end
         end
     end
     return OldNameCall(self, ...)
