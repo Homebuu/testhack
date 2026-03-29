@@ -1185,25 +1185,6 @@ murderermystery2:Toggle({
     end
 })
 
-local OldNameCall
-OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-
-    if _G.KillMurdererOnly and self and typeof(self) == "Instance" and method == "FireServer" then
-        if tostring(self) == "GunFired" then
-            local targetChar = getMurderer()
-            if targetChar and targetChar:FindFirstChild("Head") then
-                args[3] = tostring(targetChar.Head.Position)
-                args[4] = targetChar.Head
-                return self.FireServer(self, unpack(args))
-            end
-        end
-    end
-
-    return OldNameCall(self, ...)
-end)
-
 local function secureGun()
     local gunDrop = nil
     for _, obj in pairs(workspace:GetDescendants()) do
