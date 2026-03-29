@@ -530,51 +530,54 @@ FlingLuck:Toggle({
     Value = false,
     Callback = function(state)
         flingEnabled = state
-        
-        local char = player.Character
+        local char = lp.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         
         if flingEnabled then
             if selectedPlayer == "" or selectedPlayer == nil then
-                WindUI:Notify({
-                    Title = "Error!",
-                    Content = "กรุณาเลือกผู้เล่นก่อน!",
-                    Duration = 4,
-                    Type = "Error"
-                })
+                WindUI:Notify({Title = "Error!", Content = "กรุณาเลือกผู้เล่นก่อน!", Type = "Error"})
                 return
             end
 
-            local target = Players:FindFirstChild(selectedPlayer)
+            local target = game.Players:FindFirstChild(selectedPlayer)
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                
                 local originalCFrame = hrp.CFrame
+                local angle = 0 -- ตัวแปรองศาสำหรับการหมุน
                 
                 task.spawn(function()
-                    WindUI:Notify({
-                        Title = "Flinging...",
-                        Content = "กำลังส่ง " .. selectedPlayer .. " ไปนอกโลก",
-                        Duration = 3,
-                        Type = "Warning"
-                    })
+                    WindUI:Notify({Title = "Flinging...", Content = "กำลังเหวี่ยง " .. selectedPlayer, Type = "Warning"})
 
                     while flingEnabled and char and hrp and target and target.Character do
                         local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
                         if not targetHrp then break end
                         
+                        -- 1. ปิด Collision และล้างส่วนเกิน (กันติดกล่องขาว)
                         for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then part.CanCollide = false end
+                            if part:IsA("BasePart") then 
+                                part.CanCollide = false 
+                            end
+                            if part:IsA("SelectionBox") or part:IsA("BoxHandleAdornment") then
+                                part:Destroy()
+                            end
                         end
 
-                        hrp.Velocity = Vector3.new(0, 3000, 0)
-                        hrp.RotVelocity = Vector3.new(3000, 3000, 3000) 
+                        -- 2. ใส่แรงเหวี่ยงมหาศาล (หัวใจหลักของ Fling)
+                        hrp.Velocity = Vector3.new(0, 8000, 0) -- แรงดันขึ้นข้างบน
+                        hrp.RotVelocity = Vector3.new(8000, 8000, 8000) -- แรงหมุนตัว
 
-                        local jitter = Vector3.new(math.random(-1,1)/100, 0, math.random(-1,1)/100)
-                        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
+                        -- 3. คำนวณ Orbit (หมุนรอบตัว)
+                        angle = angle + 0.8 -- ความเร็วในการวนรอบ (ยิ่งเยอะยิ่งวนเร็ว)
+                        local radius = 1 -- ระยะห่างจากเป้าหมาย (ยิ่งน้อยยิ่งแรง)
+                        local x = math.cos(angle) * radius
+                        local z = math.sin(angle) * radius
+                        
+                        -- 4. วาร์ปไปตำแหน่งที่คำนวณได้ (เน้นกระแทกช่วงล่างของเป้าหมาย)
+                        hrp.CFrame = targetHrp.CFrame * CFrame.new(x, -1.5, z)
                         
                         task.wait() 
                     end
                     
+                    -- คืนค่าหลังหยุด Fling
                     if hrp then
                         hrp.Velocity = Vector3.zero
                         hrp.RotVelocity = Vector3.zero
@@ -584,13 +587,6 @@ FlingLuck:Toggle({
                         end
                     end
                 end)
-            else
-                WindUI:Notify({
-                    Title = "Error!",
-                    Content = "ไม่พบตัวละครเป้าหมาย",
-                    Duration = 4,
-                    Type = "Error"
-                })
             end
         end
     end
