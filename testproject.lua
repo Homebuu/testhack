@@ -558,8 +558,8 @@ FlingLuck:Toggle({
 				     --       if part:IsA("BasePart") then part.CanCollide = false end
 				 --       end
 				
-				        hrp.Velocity = Vector3.new(0, 5000, 0) 
-				        hrp.RotVelocity = Vector3.new(5000, 5000, 5000) 
+				        hrp.Velocity = Vector3.new(0, 25000, 0) 
+				        hrp.RotVelocity = Vector3.new(10000, 10000, 10000) 
 				
 				        angle = angle + 0.8  -- ปรับความเร็วการหมุนที่นี่
 				        local radius = 0.8   -- ระยะห่าง (ยิ่งน้อยยิ่งชิดและแรง)
