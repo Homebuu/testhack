@@ -679,9 +679,6 @@ discordBTN:Button({
 })
 
 -- [[ function ]] -- 
-local lp = game.Players.LocalPlayer
-local rs = game:GetService("ReplicatedStorage")
-
 if remote then
     remote.OnClientEvent:Connect(function(data)
         playerData = data
@@ -722,7 +719,6 @@ local function getMM2Role(v)
             return {Type = "Sheriff", Color = Color3.fromRGB(0, 150, 255)}
         end
     end
-
     return nil
 end
 local function updateHighlights()
@@ -748,6 +744,9 @@ local function updateHighlights()
         end
     end
 end
+local lp = game.Players.LocalPlayer
+local rs = game:GetService("ReplicatedStorage")
+
 local function getMurderer()
     for _, v in pairs(game.Players:GetPlayers()) do
         if v ~= lp and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
@@ -1316,58 +1315,42 @@ murderermystery2:Toggle({
     end
 })
 murderermystery2:Toggle({
-    Title = "สังหารฆาตกร V3 (In-Body Kill)",
-    Desc = "วาร์ปไปทับตัวฆาตกรแล้วยิงทันที",
+    Title = "สังหารฆาตกร V3 (YARHM Style)",
+    Desc = "วาร์ปไปสิงร่างฆาตกรแล้วยิง (เนียนกว่าเดิม)",
     Value = false,
     Callback = function(state)
         _G.KillMurdererOnlyV3 = state
-        local lp = game.Players.LocalPlayer
-
-        local function teleportAndKill(targetChar)
-            local char = lp.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            local gun = char:FindFirstChild("Gun") or lp.Backpack:FindFirstChild("Gun")
-            
-            if not hrp or not gun or not targetChar:FindFirstChild("HumanoidRootPart") then return end
-            
-            local oldPos = hrp.CFrame
-
-            -- 1. ควักปืน
-            if gun.Parent ~= char then
-                char.Humanoid:EquipTool(gun)
-                task.wait(0.2)
-            end
-
-            pcall(function()
-                -- 2. วาร์ปไปทับตัวฆาตกรเป๊ะๆ (In-Body)
-                hrp.CFrame = targetChar.HumanoidRootPart.CFrame
-                task.wait(0.1) -- รอให้ตำแหน่งอัปเดต
-
-                -- 3. สั่งยิง (ใช้ Activate เพื่อจำลองการกดเมาส์ซ้าย)
-                gun:Activate() 
-                
-                -- 4. ส่ง Remote สำทับเพื่อให้ตายชัวร์
-                local targetHead = targetChar:FindFirstChild("Head")
-                if targetHead then
-                    local weaponService = game:GetService("ReplicatedStorage"):FindFirstChild("ClientServices") 
-                                          and game:GetService("ReplicatedStorage").ClientServices.WeaponService
-                    if weaponService and weaponService:FindFirstChild("GunFired") then
-                        weaponService.GunFired:FireServer(gun.Handle, tostring(gun.Handle.Position), tostring(targetHead.Position), targetHead)
-                    end
-                end
-
-                task.wait(0.1)
-                hrp.CFrame = oldPos -- วาร์ปกลับ
-            end)
-        end
-
+        
         if state then
             task.spawn(function()
                 while _G.KillMurdererOnlyV3 do
                     local target = getMurderer()
-                    if target then
-                        teleportAndKill(target)
-                        task.wait(3.5) -- คูลดาวน์ปืน MM2
+                    local char = lp.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    local gun = char and (char:FindFirstChild("Gun") or lp.Backpack:FindFirstChild("Gun"))
+                    
+                    if target and hrp and gun and target:FindFirstChild("HumanoidRootPart") then
+                        local targetHrp = target.HumanoidRootPart
+                        local oldPos = hrp.CFrame
+                        
+                        -- 1. เช็คกระสุน/ถือปืน
+                        if gun.Parent ~= char then
+                            char.Humanoid:EquipTool(gun)
+                            task.wait(0.2)
+                        end
+                        
+                        -- 2. วาร์ปไปทับ (YARHM มักจะวาร์ปไปข้างหลังนิดนึงเพื่อความชัวร์)
+                        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, 1)
+                        task.wait(0.1)
+                        
+                        -- 3. สั่งยิง (Activate)
+                        gun:Activate()
+                        
+                        -- 4. วาร์ปกลับทันที
+                        task.wait(0.1)
+                        hrp.CFrame = oldPos
+                        
+                        task.wait(3.5) -- คูลดาวน์ปืน
                     end
                     task.wait(0.5)
                 end
