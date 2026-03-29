@@ -869,7 +869,6 @@ murderermystery2:Toggle({
                             Duration = 3,
                             Type = "Warning"
                         })
-						hum:ChangeState(Enum.HumanoidStateType.Physics)
 				 	local startTime = tick()
                     while _G.AutoFlingMurderer and targetHrp.Parent and (tick() - startTime < 3) do
                         for _, part in pairs(char:GetDescendants()) do
