@@ -763,6 +763,25 @@ local function getMurderer()
     end
     return nil
 end
+local OldNameCall
+OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+
+    if _G.KillMurdererOnly and method == "FireServer" and tostring(self) == "GunFired" then
+        local targetChar = getMurderer() 
+        if targetChar and targetChar:FindFirstChild("Head") then
+            local targetHead = targetChar.Head
+            
+            args[2] = tostring(game.Players.LocalPlayer.Character.Gun.Handle.Position)
+            args[3] = tostring(targetHead.Position) 
+            args[4] = targetHead 
+            
+            return OldNameCall(self, unpack(args))
+        end
+    end
+    return OldNameCall(self, ...)
+end)
 
 -- [[ ส่วนของ Toggle ]] --
 murderermystery2:Toggle({
@@ -1314,24 +1333,66 @@ murderermystery2:Toggle({
         end
     end
 })
+murderermystery2:Toggle({
+    Title = "สังหารฆาตกร V3 (In-Body Kill)",
+    Desc = "วาร์ปไปทับตัวฆาตกรแล้วยิงทันที",
+    Value = false,
+    Callback = function(state)
+        _G.KillMurdererOnlyV3 = state
+        local lp = game.Players.LocalPlayer
 
-local OldNameCall
-OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
+        local function teleportAndKill(targetChar)
+            local char = lp.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local gun = char:FindFirstChild("Gun") or lp.Backpack:FindFirstChild("Gun")
+            
+            if not hrp or not gun or not targetChar:FindFirstChild("HumanoidRootPart") then return end
+            
+            local oldPos = hrp.CFrame
 
-    if _G.KillMurdererOnly and method == "FireServer" and tostring(self) == "GunFired" then
-        local targetChar = getMurderer()
-        if targetChar and targetChar:FindFirstChild("Head") then
-            args[3] = tostring(targetChar.Head.Position)
-            args[4] = targetChar.Head
-            return OldNameCall(self, unpack(args))
+            -- 1. ควักปืน
+            if gun.Parent ~= char then
+                char.Humanoid:EquipTool(gun)
+                task.wait(0.2)
+            end
+
+            pcall(function()
+                -- 2. วาร์ปไปทับตัวฆาตกรเป๊ะๆ (In-Body)
+                hrp.CFrame = targetChar.HumanoidRootPart.CFrame
+                task.wait(0.1) -- รอให้ตำแหน่งอัปเดต
+
+                -- 3. สั่งยิง (ใช้ Activate เพื่อจำลองการกดเมาส์ซ้าย)
+                gun:Activate() 
+                
+                -- 4. ส่ง Remote สำทับเพื่อให้ตายชัวร์
+                local targetHead = targetChar:FindFirstChild("Head")
+                if targetHead then
+                    local weaponService = game:GetService("ReplicatedStorage"):FindFirstChild("ClientServices") 
+                                          and game:GetService("ReplicatedStorage").ClientServices.WeaponService
+                    if weaponService and weaponService:FindFirstChild("GunFired") then
+                        weaponService.GunFired:FireServer(gun.Handle, tostring(gun.Handle.Position), tostring(targetHead.Position), targetHead)
+                    end
+                end
+
+                task.wait(0.1)
+                hrp.CFrame = oldPos -- วาร์ปกลับ
+            end)
+        end
+
+        if state then
+            task.spawn(function()
+                while _G.KillMurdererOnlyV3 do
+                    local target = getMurderer()
+                    if target then
+                        teleportAndKill(target)
+                        task.wait(3.5) -- คูลดาวน์ปืน MM2
+                    end
+                    task.wait(0.5)
+                end
+            end)
         end
     end
-
-    return OldNameCall(self, ...) 
-end)
-
+})
 -- [[ Notification & Start ]] --
 WindUI:Notify({
     Title = "HG HUB V1",
