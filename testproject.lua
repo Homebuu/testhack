@@ -265,7 +265,7 @@ local function toggleFly(state)
 end
 
 -- [[ Tabs Setup ]] --
-local MainTab = Window:Tab({ Title = "เมนูหลัก", Icon = "star" })
+local MainTab = Window:Tab({ Title = "เมนูหลัก", Icon = "star" , Opened = true})
 local TeleportTab = Window:Tab({ Title = "เทเลพอร์ต", Icon = "navigation" })
 local PlayerVisible = Window:Tab({ Title = "การมองเห็น", Icon = "eye" }) 
 local FlingLuck = Window:Tab({ Title = "ฟังก์ชั่นเถื่อน", Icon = "geist:warning" }) 
