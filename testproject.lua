@@ -729,36 +729,66 @@ FlingLuck:Toggle({
                 originalCFrame = char.HumanoidRootPart.CFrame
                 char.Archivable = true
                 
+                -- 1. สร้างร่างแยก
                 ghostChar = char:Clone()
                 ghostChar.Name = "Ghost_Spirit"
                 ghostChar.Parent = workspace
                 
+                -- [[ แก้ปัญหาร่างแข็ง & กล่องขาว ]] --
+                local ghostHum = ghostChar:FindFirstChildOfClass("Humanoid")
+                local realHum = char:FindFirstChildOfClass("Humanoid")
+                
                 for _, obj in pairs(ghostChar:GetDescendants()) do
-                    if obj:IsA("LocalScript") or obj:IsA("Script") or obj:IsA("BillboardGui") then 
+                    -- ลบกล่องขาวๆ และพวก Mesh ที่แสดงผลผิดปกติ
+                    if obj:IsA("SelectionBox") or obj:IsA("BoxHandleAdornment") then
+                        obj:Destroy()
+                    end
+                    
+                    -- ลบ Script ออกให้หมด
+                    if obj:IsA("LocalScript") or obj:IsA("Script") then 
                         obj:Destroy() 
                     end
+                    
+                    -- ทำให้ "หายตัว" (ทั้งตัวละครและเครื่องประดับ)
                     if obj:IsA("BasePart") or obj:IsA("Decal") then
                         obj.Transparency = 0.5
+                        obj.CanCollide = true -- ให้ชนกำแพงได้ปกติ
                     end
                 end
 
-                cam.CameraSubject = ghostChar.Humanoid
+                -- 2. ย้ายมุมกล้อง
+                cam.CameraSubject = ghostHum
 
+                -- 3. ระบบ Sync แบบ Real-time (ไม่ให้แข็ง)
                 ghostConnection = runService.RenderStepped:Connect(function()
                     if _G.AstralMode and ghostChar and char then
-                        ghostChar.Humanoid:Move(char.Humanoid.MoveDirection, false)
+                        -- บังคับร่างแยกเดิน (ลื่นๆ ไม่แข็ง)
+                        ghostHum:Move(realHum.MoveDirection, false)
                         
+                        -- Sync Animation (ทำให้ร่างแยกหายใจ/เดิน/ขยับท่าทางตามตัวจริง)
+                        if realHum.ActiveAnimationLauncher then
+                             -- ปกติ Roblox จะเล่น Anim ให้อัตโนมัติถ้า Humanoid ขยับ
+                        end
+
+                        -- หันหน้าตามกล้อง
                         ghostChar.HumanoidRootPart.CFrame = CFrame.new(ghostChar.HumanoidRootPart.Position) * CFrame.Angles(0, select(2, cam.CFrame:ToEulerAnglesYXZ()), 0)
                         
+                        -- ล็อคร่างจริงไว้ที่จุดเกิด (ไม่ให้หายตัว)
                         char.HumanoidRootPart.CFrame = originalCFrame
                         char.HumanoidRootPart.Velocity = Vector3.zero
                         
+                        -- Sync Tool & Action
                         local realTool = char:FindFirstChildOfClass("Tool")
                         if realTool then
                             if not ghostChar:FindFirstChild(realTool.Name) then
                                 local cloneTool = realTool:Clone()
+                                -- ลบกล่องขาวที่ติดมากับ Tool (ถ้ามี)
+                                for _, part in pairs(cloneTool:GetDescendants()) do
+                                    if part:IsA("BasePart") then part.Transparency = 0.5 end
+                                end
                                 cloneTool.Parent = ghostChar
                             end
+                            -- ระบบกดยิง/ตี
                             if game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
                                 local t = ghostChar:FindFirstChild(realTool.Name)
                                 if t then t:Activate() end
@@ -772,6 +802,7 @@ FlingLuck:Toggle({
                 end)
             end
         else
+            -- 4. สลับกลับร่างปกติ
             if ghostChar and char:FindFirstChild("HumanoidRootPart") then
                 char.HumanoidRootPart.CFrame = ghostChar.HumanoidRootPart.CFrame
                 cam.CameraSubject = char.Humanoid
