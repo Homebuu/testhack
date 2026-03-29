@@ -897,6 +897,91 @@ murderermystery2:Toggle({
         end
     end
 })
+murderermystery2:Toggle({
+    Title = "Fling Sheriff",
+    Desc = "วาร์ปไปสะบัดฆาตกรให้กระเด็น",
+    Value = false,
+    Callback = function(state)
+        _G.AutoFlingMurderer = state
+        
+        local lp = game.Players.LocalPlayer
+        
+        if state then
+            task.spawn(function()
+                while _G.AutoFlingMurderer do
+                    task.wait(0.5) -- ไม่ต้องวนลูปหาบ่อยเกินไปเพื่อลด Lag
+                    
+                    local char = lp.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    if not hrp then continue end
+
+                    -- ค้นหาเป้าหมาย (Murderer)
+                    local targetPlayer = nil
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v == lp or not v.Character or not v.Character:FindFirstChild("HumanoidRootPart") then continue end
+                        
+                        local isMurd = false
+                        -- เช็คจากตารางข้อมูล YARHM หรือ ไอเทมในตัว
+                        if _G.playerData and _G.playerData[v.Name] then
+                            if tostring(_G.playerData[v.Name].Role) == "Sheriff" and not _G.playerData[v.Name].Dead then
+                                isMurd = true
+                            end
+                        elseif v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
+                            isMurd = true
+                        end
+
+                        if isMurd then
+                            targetPlayer = v
+                            break
+                        end
+                    end
+
+                    -- ถ้าเจอเป้าหมาย เริ่มกระบวนการ Fling
+                    if targetPlayer then
+                        local targetHrp = targetPlayer.Character.HumanoidRootPart
+                        local originalCFrame = hrp.CFrame
+                        
+                        -- ส่งแจ้งเตือน (ใช้ Notification ของระบบที่มีในไฟล์)
+                        print("Flinging: " .. targetPlayer.Name) 
+                        
+                        local startTime = tick()
+                        -- เริ่มลูปสะบัด (ทำงาน 3 วินาทีต่อครั้ง หรือจนกว่าเป้าหมายจะกระเด็น)
+                        while _G.AutoFlingMurderer and targetHrp.Parent and (tick() - startTime < 3) do
+                            task.wait()
+                            
+                            -- ปิดการชนกันของร่างกายเรา
+                            for _, part in pairs(char:GetDescendants()) do
+                                if part:IsA("BasePart") then part.CanCollide = false end
+                            end
+
+                            -- ใส่ความเร็วสะบัด (Fling Force)
+                            hrp.Velocity = Vector3.new(0, 15000, 0)
+                            hrp.RotVelocity = Vector3.new(10000, 10000, 10000)
+
+                            -- วาร์ปไปตำแหน่งใต้ตัวเป้าหมายเล็กน้อยเพื่อให้เกิดแรงกระแทก
+                            local jitter = Vector3.new(math.random(-2,2)/100, 0, math.random(-2,2)/100)
+                            hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
+
+                            -- ถ้าเป้าหมายกระเด็นไปไกลแล้ว (ความเร็วสูง) ให้หยุด
+                            if targetHrp.AssemblyLinearVelocity.Magnitude > 200 then break end
+                        end
+
+                        -- จบการ Fling: รีเซ็ตค่ากลับเป็นปกติ
+                        hrp.Velocity = Vector3.zero
+                        hrp.RotVelocity = Vector3.zero
+                        hrp.CFrame = originalCFrame
+                        
+                        for _, part in pairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then part.CanCollide = true end
+                        end
+                        
+                        task.wait(1.5) -- พักก่อนเริ่มหาใหม่
+                    end
+                end
+            end)
+        end
+    end
+})
 local killAllConnection = nil
 murderermystery2:Toggle({
     Title = "สังหารทุกคน (Murderer Only)",
