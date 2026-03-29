@@ -26,7 +26,7 @@ local Window = WindUI:CreateWindow({
 	SideBarWidth = 180,
 	ThemeSwitch = false,
 	OpenButton = {
-		Title = "KH HUBV1",
+		Title = "Homebuu V1",
 		CornerRadius = UDim.new(1, 0), 
 		StrokeThickness = 3,
 		Enabled = true, 
@@ -836,69 +836,6 @@ murderermystery2:Toggle({
 })
 murderermystery2:Toggle({
     Title = "Fling Murderer",
-    Desc = "Fling ฆาตกรอัตโนมัติ",
-    Value = false,
-    Callback = function(state)
-        _G.AutoFlingMurderer = state
-        local char = game.Players.LocalPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if _G.AutoFlingMurderer then
-            task.spawn(function()
-                while _G.AutoFlingMurderer and char and hrp do
-                    task.wait(0.1) 
-                    local targetPlayer = nil
-                    for _, v in pairs(game.Players:GetPlayers()) do
-                        if v == game.Players.LocalPlayer or not v.Character then continue end
-                        local isMurderer = false
-                        if playerData and playerData[v.Name] and tostring(playerData[v.Name].Role) == "Murderer" then
-                            isMurderer = true
-                        elseif v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
-                            isMurderer = true
-                        end
-                        if isMurderer then
-                            targetPlayer = v
-                            break
-                        end
-                    end
-                    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                        local targetHrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-                        local originalCFrame = hrp.CFrame
-                        WindUI:Notify({
-                            Title = "Target Found!",
-                            Content = "กำลังส่งฆาตกร (" .. targetPlayer.Name .. ") ไปนอกโลก",
-                            Duration = 3,
-                            Type = "Warning"
-                        })
-				 	local startTime = tick()
-                    while _G.AutoFlingMurderer and targetHrp.Parent and (tick() - startTime < 3) do
-                        for _, part in pairs(char:GetDescendants()) do
-                        	if part:IsA("BasePart") then part.CanCollide = false end
-                        end
-                        hrp.Velocity = Vector3.new(0, 10000, 0)
-                        hrp.RotVelocity = Vector3.new(5000, 5000, 5000) 
-
- 					 	local jitter = Vector3.new(math.random(-2,2)/100, 0, math.random(-2,2)/100)
-                        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.2, 0) * CFrame.new(jitter)
-									
-                        if targetHrp.AssemblyLinearVelocity.Magnitude > 150 then break end
-                            task.wait() 
-                        end
-                        hrp.Velocity = Vector3.zero
-                        hrp.RotVelocity = Vector3.zero
-                        hrp.CFrame = originalCFrame
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then part.CanCollide = true end
-                        end
-
-                        task.wait(1.5) 
-                    end
-                end
-            end)
-        end
-    end
-})
-murderermystery2:Toggle({
-    Title = "Fling Sheriff",
     Desc = "วาร์ปไปสะบัดฆาตกรให้กระเด็น",
     Value = false,
     Callback = function(state)
@@ -909,19 +846,90 @@ murderermystery2:Toggle({
         if state then
             task.spawn(function()
                 while _G.AutoFlingMurderer do
-                    task.wait(0.5) -- ไม่ต้องวนลูปหาบ่อยเกินไปเพื่อลด Lag
+                    task.wait(0.5)
                     
                     local char = lp.Character
                     local hrp = char and char:FindFirstChild("HumanoidRootPart")
                     if not hrp then continue end
 
-                    -- ค้นหาเป้าหมาย (Murderer)
                     local targetPlayer = nil
                     for _, v in pairs(game.Players:GetPlayers()) do
                         if v == lp or not v.Character or not v.Character:FindFirstChild("HumanoidRootPart") then continue end
                         
                         local isMurd = false
-                        -- เช็คจากตารางข้อมูล YARHM หรือ ไอเทมในตัว
+                        if _G.playerData and _G.playerData[v.Name] then
+                            if tostring(_G.playerData[v.Name].Role) == "Murderer" and not _G.playerData[v.Name].Dead then
+                                isMurd = true
+                            end
+                        elseif v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
+                            isMurd = true
+                        end
+
+                        if isMurd then
+                            targetPlayer = v
+                            break
+                        end
+                    end
+
+                    if targetPlayer then
+                        local targetHrp = targetPlayer.Character.HumanoidRootPart
+                        local originalCFrame = hrp.CFrame
+                                                
+                        local startTime = tick()
+                        while _G.AutoFlingMurderer and targetHrp.Parent and (tick() - startTime < 3) do
+                            task.wait()
+                            
+                            for _, part in pairs(char:GetDescendants()) do
+                                if part:IsA("BasePart") then part.CanCollide = false end
+                            end
+
+                            hrp.Velocity = Vector3.new(0, 15000, 0)
+                            hrp.RotVelocity = Vector3.new(10000, 10000, 10000)
+
+                            local jitter = Vector3.new(math.random(-2,2)/100, 0, math.random(-2,2)/100)
+                            hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
+
+                            if targetHrp.AssemblyLinearVelocity.Magnitude > 200 then break end
+                        end
+
+                        hrp.Velocity = Vector3.zero
+                        hrp.RotVelocity = Vector3.zero
+                        hrp.CFrame = originalCFrame
+                        
+                        for _, part in pairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then part.CanCollide = true end
+                        end
+                        
+                        task.wait(1.5)
+                    end
+                end
+            end)
+        end
+    end
+})
+murderermystery2:Toggle({
+    Title = "Fling Sheriff",
+    Desc = "วาร์ปไปสะบัดนายอำเภอให้กระเด็น",
+    Value = false,
+    Callback = function(state)
+        _G.AutoFlingMurderer = state
+        
+        local lp = game.Players.LocalPlayer
+        
+        if state then
+            task.spawn(function()
+                while _G.AutoFlingMurderer do
+                    task.wait(0.5)
+                    
+                    local char = lp.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    if not hrp then continue end
+
+                    local targetPlayer = nil
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if v == lp or not v.Character or not v.Character:FindFirstChild("HumanoidRootPart") then continue end
+                        
+                        local isMurd = false
                         if _G.playerData and _G.playerData[v.Name] then
                             if tostring(_G.playerData[v.Name].Role) == "Sheriff" and not _G.playerData[v.Name].Dead then
                                 isMurd = true
@@ -936,37 +944,27 @@ murderermystery2:Toggle({
                         end
                     end
 
-                    -- ถ้าเจอเป้าหมาย เริ่มกระบวนการ Fling
                     if targetPlayer then
                         local targetHrp = targetPlayer.Character.HumanoidRootPart
                         local originalCFrame = hrp.CFrame
-                        
-                        -- ส่งแจ้งเตือน (ใช้ Notification ของระบบที่มีในไฟล์)
-                        print("Flinging: " .. targetPlayer.Name) 
-                        
+                                                
                         local startTime = tick()
-                        -- เริ่มลูปสะบัด (ทำงาน 3 วินาทีต่อครั้ง หรือจนกว่าเป้าหมายจะกระเด็น)
                         while _G.AutoFlingMurderer and targetHrp.Parent and (tick() - startTime < 3) do
                             task.wait()
                             
-                            -- ปิดการชนกันของร่างกายเรา
                             for _, part in pairs(char:GetDescendants()) do
                                 if part:IsA("BasePart") then part.CanCollide = false end
                             end
 
-                            -- ใส่ความเร็วสะบัด (Fling Force)
                             hrp.Velocity = Vector3.new(0, 15000, 0)
                             hrp.RotVelocity = Vector3.new(10000, 10000, 10000)
 
-                            -- วาร์ปไปตำแหน่งใต้ตัวเป้าหมายเล็กน้อยเพื่อให้เกิดแรงกระแทก
                             local jitter = Vector3.new(math.random(-2,2)/100, 0, math.random(-2,2)/100)
                             hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
 
-                            -- ถ้าเป้าหมายกระเด็นไปไกลแล้ว (ความเร็วสูง) ให้หยุด
                             if targetHrp.AssemblyLinearVelocity.Magnitude > 200 then break end
                         end
 
-                        -- จบการ Fling: รีเซ็ตค่ากลับเป็นปกติ
                         hrp.Velocity = Vector3.zero
                         hrp.RotVelocity = Vector3.zero
                         hrp.CFrame = originalCFrame
@@ -1056,7 +1054,6 @@ murderermystery2:Toggle({
 				        task.wait(0.1)
 				    end)
 				
-				    -- ปลด Anchor แน่นอนไม่ว่าจะ error หรือไม่
 				    pcall(function()
 				        targetHRP.Anchored = false
 				    end)
@@ -1079,47 +1076,27 @@ murderermystery2:Toggle({
 })
 local killMurdererConnection = nil
 murderermystery2:Toggle({
-    Title = "สังหารฆาตกรอัตโนมัติ (Sheriff Only)",
-    Desc = "เมื่อมีปืน จะวาร์ปไปยิงฆาตกรทันที",
+    Title = "สังหารฆาตกร (WeaponService Mode)",
+    Desc = "วาร์ปไปยิงฆาตกรด้วยระบบ GunFired (ยิงโดน 100%)",
     Value = false,
     Callback = function(state)
         _G.KillMurdererOnly = state
         
-        local function hasGun()
-            local lp = game.Players.LocalPlayer
-            local char = lp.Character
-            if lp.Backpack:FindFirstChild("Gun") or (char and char:FindFirstChild("Gun")) then
-                return true
-            end
-            return false
-        end
-
+        local lp = game.Players.LocalPlayer
+        
         local function killMurderer()
-            local lp = game.Players.LocalPlayer
             local char = lp.Character
             if not char then return end
             local hrp = char:FindFirstChild("HumanoidRootPart")
-            if not hrp then return end
-
-            if not char:FindFirstChild("Gun") then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if lp.Backpack:FindFirstChild("Gun") then
-                    hum:EquipTool(lp.Backpack:FindFirstChild("Gun"))
-                    task.wait(0.2)
-                else
-                    return 
-                end
-            end
-
-            local gun = char:FindFirstChild("Gun")
-            if not gun then return end
+            local gun = char:FindFirstChild("Gun") or lp.Backpack:FindFirstChild("Gun")
+            
+            if not hrp or not gun then return end
 
             for _, v in pairs(game.Players:GetPlayers()) do
-                if v == lp then continue end
-                if not v.Character then continue end
-                
+                if v == lp or not v.Character then continue end
                 local targetHRP = v.Character:FindFirstChild("HumanoidRootPart")
-                if not targetHRP then continue end
+                local targetHead = v.Character:FindFirstChild("Head")
+                if not targetHRP or not targetHead then continue end
 
                 local isMurd = false
                 if playerData and playerData[v.Name] then
@@ -1132,28 +1109,54 @@ murderermystery2:Toggle({
 
                 if isMurd then
                     local oldPos = hrp.CFrame
+                    
+                    if gun.Parent ~= char then
+                        char.Humanoid:EquipTool(gun)
+                        task.wait(0.2)
+                    end
+
                     pcall(function()
-                        hrp.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 5) 
+                        hrp.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 5)
                         task.wait(0.1)
+
+                        local origin = gun.Handle.Position
+                        local targetPos = targetHead.Position
                         
-                        if gun:FindFirstChild("KnifeServer") and gun.KnifeServer:FindFirstChild("ShootGun") then
-                             gun.KnifeServer.ShootGun:InvokeServer(targetHRP.Position)
-                        elseif game:GetService("ReplicatedStorage"):FindFirstChild("ShootGun") then
-                             game:GetService("ReplicatedStorage").ShootGun:FireServer(targetHRP.Position)
+                        local originStr = tostring(origin.X)..", "..tostring(origin.Y)..", "..tostring(origin.Z)
+                        local targetStr = tostring(targetPos.X)..", "..tostring(targetPos.Y)..", "..tostring(targetPos.Z)
+
+                        local args = {
+                            [1] = gun.Handle,
+                            [2] = originStr, 
+                            [3] = targetStr,
+                            [4] = targetHead 
+                        }
+
+                        -- 4. ส่ง Remote ยิงทันที
+                        local weaponService = game:GetService("ReplicatedStorage"):FindFirstChild("ClientServices") 
+                                              and game:GetService("ReplicatedStorage").ClientServices:FindFirstChild("WeaponService")
+                        
+                        if weaponService and weaponService:FindFirstChild("GunFired") then
+                            weaponService.GunFired:FireServer(unpack(args))
+                        else
+                            if gun:FindFirstChild("KnifeServer") and gun.KnifeServer:FindFirstChild("ShootGun") then
+                                gun.KnifeServer.ShootGun:InvokeServer(targetPos)
+                            end
                         end
                         
                         task.wait(0.2)
                     end)
 
-                    hrp.CFrame = oldPos 
+                    hrp.CFrame = oldPos
                     break 
                 end
             end
         end
+
         if state then
             task.spawn(function()
                 while _G.KillMurdererOnly do
-                    if hasGun() then
+                    if lp.Backpack:FindFirstChild("Gun") or (lp.Character and lp.Character:FindFirstChild("Gun")) then
                         killMurderer()
                     end
                     task.wait(1) 
