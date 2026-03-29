@@ -701,9 +701,8 @@ FlingLuck:Toggle({
     end
 })
 
-local astralBody = nil
-local astralConnection = nil
-local originalPos = nil
+local fakeChar = nil
+local ghostConnection = nil
 FlingLuck:Toggle({
     Title = "Ghost Mode",
     Desc = "สร้างร่างแยกทิ้งไว้",
@@ -712,68 +711,45 @@ FlingLuck:Toggle({
        _G.AstralMode = state
         local lp = game.Players.LocalPlayer
         local char = lp.Character
-        local cam = workspace.CurrentCamera
-
+        
         if state then
             if char and char:FindFirstChild("HumanoidRootPart") then
-                originalPos = char.HumanoidRootPart.CFrame
                 char.Archivable = true
-                
-                astralBody = char:Clone()
-                astralBody.Name = "AstralPlayer"
-                astralBody.Parent = workspace
-                
-                for _, p in pairs(char:GetDescendants()) do
-                    if p:IsA("BasePart") then p.CanCollide = false p.Transparency = 0.7 end
+                fakeChar = char:Clone()
+                fakeChar.Name = "FakeBody"
+                fakeChar.Parent = workspace
+                for _, v in pairs(fakeChar:GetDescendants()) do
+                    if v:IsA("LocalScript") or v:IsA("Script") then v:Destroy() end
                 end
 
-                cam.CameraSubject = astralBody.Humanoid
-
-                astralConnection = game:GetService("RunService").RenderStepped:Connect(function()
-                    if astralBody and astralBody:FindFirstChild("Humanoid") and char:FindFirstChild("Humanoid") then
-                        astralBody.Humanoid:Move(char.Humanoid.MoveDirection, false)
-                        
-                        astralBody.HumanoidRootPart.CFrame = CFrame.new(astralBody.HumanoidRootPart.Position) * CFrame.Angles(0, select(2, cam.CFrame:ToEulerAnglesYXZ()), 0)
-                        
-                        char.HumanoidRootPart.CFrame = originalPos
-                        char.HumanoidRootPart.Velocity = Vector3.zero
-
-                        local tool = char:FindFirstChildOfClass("Tool")
-                        if tool then
-                            if not astralBody:FindFirstChild(tool.Name) then
-                                local cloneTool = tool:Clone()
-                                cloneTool.Parent = astralBody
-                            end
-                        else
-                            for _, t in pairs(astralBody:GetChildren()) do
-                                if t:IsA("Tool") then t:Destroy() end
+                ghostConnection = game:GetService("RunService").Stepped:Connect(function()
+                    if _G.AstralMode and char then
+                        for _, part in pairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                                part.Transparency = 0.5 
                             end
                         end
                     end
                 end)
-                
-                lp:GetMouse().Button1Down:Connect(function()
-                    if _G.AstralMode and astralBody then
-                        local tool = astralBody:FindFirstChildOfClass("Tool")
-                        if tool then tool:Activate() end
-                    end
-                end)
             end
         else
-            if astralConnection then astralConnection:Disconnect() end
+            if ghostConnection then ghostConnection:Disconnect() end
             
-            if astralBody and char:FindFirstChild("HumanoidRootPart") then
-                local finalPos = astralBody.HumanoidRootPart.CFrame
-                astralBody:Destroy()
-                astralBody = nil
-                
-                char.HumanoidRootPart.CFrame = finalPos
-                for _, p in pairs(char:GetDescendants()) do
-                    if p:IsA("BasePart") then p.CanCollide = true p.Transparency = 0 end
-                end
-                cam.CameraSubject = char.Humanoid
+            if fakeChar and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = fakeChar.HumanoidRootPart.CFrame
+                fakeChar:Destroy()
+                fakeChar = nil
             end
-            _G.AstralMode = false
+            
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Transparency = 0
+                        part.CanCollide = true
+                    end
+                end
+            end
         end
     end
 })
