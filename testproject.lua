@@ -1094,97 +1094,46 @@ murderermystery2:Toggle({
     end
 })
 
-local killMurdererConnection = nil
 murderermystery2:Toggle({
-    Title = "สังหารฆาตกร (WeaponService Mode)",
-    Desc = "วาร์ปไปยิงฆาตกรด้วยระบบ GunFired (ยิงโดน 100%)",
+    Title = "สังหาร Murderer V3 ",
+    Desc = "วาร์ปไปสิงร่างฆาตกรแล้วยิง",
     Value = false,
     Callback = function(state)
-        _G.KillMurdererOnly = state
-        
-        local lp = game.Players.LocalPlayer
-        
-        local function killMurderer()
-            local char = lp.Character
-            if not char then return end
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local gun = char:FindFirstChild("Gun") or lp.Backpack:FindFirstChild("Gun")
-            
-            if not hrp or not gun then return end
-
-            for _, v in pairs(game.Players:GetPlayers()) do
-                if v == lp or not v.Character then continue end
-                local targetHRP = v.Character:FindFirstChild("HumanoidRootPart")
-                local targetHead = v.Character:FindFirstChild("Head")
-                if not targetHRP or not targetHead then continue end
-
-                local isMurd = false
-                if playerData and playerData[v.Name] then
-                    if tostring(playerData[v.Name].Role) == "Murderer" and not playerData[v.Name].Dead then
-                        isMurd = true
-                    end
-                elseif v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
-                    isMurd = true
-                end
-
-                if isMurd then
-                    local oldPos = hrp.CFrame
-                    
-                    if gun.Parent ~= char then
-                        char.Humanoid:EquipTool(gun)
-                        task.wait(0.2)
-                    end
-
-                    pcall(function()
-                        hrp.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 5)
-                        task.wait(0.1)
-
-                        local origin = gun.Handle.Position
-                        local targetPos = targetHead.Position
-                        
-                        local originStr = tostring(origin.X)..", "..tostring(origin.Y)..", "..tostring(origin.Z)
-                        local targetStr = tostring(targetPos.X)..", "..tostring(targetPos.Y)..", "..tostring(targetPos.Z)
-
-                        local args = {
-                            [1] = gun.Handle,
-                            [2] = originStr, 
-                            [3] = targetStr,
-                            [4] = targetHead 
-                        }
-
-                        -- 4. ส่ง Remote ยิงทันที
-                        local weaponService = game:GetService("ReplicatedStorage"):FindFirstChild("ClientServices") 
-                                              and game:GetService("ReplicatedStorage").ClientServices:FindFirstChild("WeaponService")
-                        
-                        if weaponService and weaponService:FindFirstChild("GunFired") then
-                            weaponService.GunFired:FireServer(unpack(args))
-                        else
-                            if gun:FindFirstChild("KnifeServer") and gun.KnifeServer:FindFirstChild("ShootGun") then
-                                gun.KnifeServer.ShootGun:InvokeServer(targetPos)
-                            end
-                        end
-                        
-                        task.wait(0.2)
-                    end)
-
-                    hrp.CFrame = oldPos
-                    break 
-                end
-            end
-        end
-
+        _G.KillMurdererOnlyV3 = state
         if state then
             task.spawn(function()
-                while _G.KillMurdererOnly do
-                    if lp.Backpack:FindFirstChild("Gun") or (lp.Character and lp.Character:FindFirstChild("Gun")) then
-                        killMurderer()
+                while _G.KillMurdererOnlyV3 do
+                    local target = getMurderer()
+                    local char = lp.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    local gun = char and (char:FindFirstChild("Gun") or lp.Backpack:FindFirstChild("Gun"))
+                    
+                    if target and hrp and gun and target:FindFirstChild("HumanoidRootPart") then
+                        local targetHrp = target.HumanoidRootPart
+                        local oldPos = hrp.CFrame
+                        
+                        if gun.Parent ~= char then
+                            char.Humanoid:EquipTool(gun)
+                            task.wait(0.2)
+                        end
+                        
+                        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, 1)
+                        task.wait(0.1)
+                        
+                        gun:Activate()
+                        
+                        task.wait(0.1)
+                        hrp.CFrame = oldPos
+                        
+                        task.wait(3.5) 
                     end
-                    task.wait(1) 
+                    task.wait(0.5)
                 end
             end)
         end
     end
 })
+
 murderermystery2:Toggle({
     Title = "Silent Aim (ล็อคเป้าฆาตกร)",
     Desc = "กดยิงมั่วๆ ก็เข้าหัวฆาตกร 100% (ต้องมีปืน)",
@@ -1193,87 +1142,7 @@ murderermystery2:Toggle({
         _G.KillMurdererOnly = state
     end
 })
-murderermystery2:Toggle({
-    Title = "สังหารฆาตกร (Instant Kill V3)",
-    Desc = "วาร์ปไปจ่อหัวยิงแล้วกลับที่เดิมทันที (แม่นยำ 100%)",
-    Value = false,
-    Callback = function(state)
-        _G.KillMurdererOnly = state
-        local lp = game.Players.LocalPlayer
 
-        local function shootTarget(targetChar)
-            local char = lp.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            local gun = char:FindFirstChild("Gun") or lp.Backpack:FindFirstChild("Gun")
-            
-            if not hrp or not gun or not targetChar:FindFirstChild("Head") then return end
-            
-            local targetHead = targetChar.Head
-            local oldPos = hrp.CFrame
-
-            -- 1. ควักปืน (สำคัญมาก ถ้าไม่ถือปืนยิงไม่ได้)
-            if gun.Parent ~= char then
-                char.Humanoid:EquipTool(gun)
-                task.wait(0.15)
-            end
-
-            pcall(function()
-                -- 2. วาร์ปไปจ่อที่หัวฆาตกรแบบประชิด (ระยะ 2 หน่วย)
-                hrp.CFrame = targetHead.CFrame * CFrame.new(0, 0, 2)
-                task.wait(0.05) -- รอให้ตำแหน่งอัปเดตบนเซิร์ฟเวอร์แป๊บเดียว
-
-                -- 3. เตรียม Args (ลองส่งแบบ Vector3 ตรงๆ เพราะบางครั้ง String มันบัค)
-                local origin = gun.Handle.Position
-                local targetPos = targetHead.Position
-                
-                -- ตรวจสอบ Path ของ Remote (ดึงมาจาก ReplicatedStorage)
-                local rs = game:GetService("ReplicatedStorage")
-                local weaponService = rs:FindFirstChild("ClientServices") and rs.ClientServices.WeaponService
-                local gunFired = weaponService and weaponService:FindFirstChild("GunFired")
-
-                if gunFired then
-                    -- ส่งแบบผสม (ลองทั้ง String และ Vector3 ตามที่ระบบต้องการ)
-                    local posStr = tostring(targetPos.X)..", "..tostring(targetPos.Y)..", "..tostring(targetPos.Z)
-                    local originStr = tostring(origin.X)..", "..tostring(origin.Y)..", "..tostring(origin.Z)
-                    
-                    -- ยิง!
-                    gunFired:FireServer(gun.Handle, originStr, posStr, targetHead)
-                end
-                
-                -- 4. ยิงเสร็จแล้ววาร์ปกลับทันที
-                task.wait(0.05)
-                hrp.CFrame = oldPos
-            end)
-        end
-
-        if state then
-            task.spawn(function()
-                while _G.KillMurdererOnly do
-                    for _, v in pairs(game.Players:GetPlayers()) do
-                        if not _G.KillMurdererOnly then break end
-                        if v ~= lp and v.Character and v.Character:FindFirstChild("Head") then
-                            local isMurd = false
-                            -- เช็ค Role จาก Data ของ YARHM
-                            if _G.playerData and _G.playerData[v.Name] then
-                                if tostring(_G.playerData[v.Name].Role) == "Murderer" and not _G.playerData[v.Name].Dead then
-                                    isMurd = true
-                                end
-                            elseif v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
-                                isMurd = true
-                            end
-
-                            if isMurd then
-                                shootTarget(v.Character)
-                                task.wait(2) -- คูลดาวน์ปืน MM2 คือประมาณ 1.5 - 2 วินาที
-                            end
-                        end
-                    end
-                    task.wait(0.5)
-                end
-            end)
-        end
-    end
-})
 local function secureGun()
     local gunDrop = nil
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -1314,50 +1183,7 @@ murderermystery2:Toggle({
         end
     end
 })
-murderermystery2:Toggle({
-    Title = "สังหารฆาตกร V3 (YARHM Style)",
-    Desc = "วาร์ปไปสิงร่างฆาตกรแล้วยิง (เนียนกว่าเดิม)",
-    Value = false,
-    Callback = function(state)
-        _G.KillMurdererOnlyV3 = state
-        
-        if state then
-            task.spawn(function()
-                while _G.KillMurdererOnlyV3 do
-                    local target = getMurderer()
-                    local char = lp.Character
-                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                    local gun = char and (char:FindFirstChild("Gun") or lp.Backpack:FindFirstChild("Gun"))
-                    
-                    if target and hrp and gun and target:FindFirstChild("HumanoidRootPart") then
-                        local targetHrp = target.HumanoidRootPart
-                        local oldPos = hrp.CFrame
-                        
-                        -- 1. เช็คกระสุน/ถือปืน
-                        if gun.Parent ~= char then
-                            char.Humanoid:EquipTool(gun)
-                            task.wait(0.2)
-                        end
-                        
-                        -- 2. วาร์ปไปทับ (YARHM มักจะวาร์ปไปข้างหลังนิดนึงเพื่อความชัวร์)
-                        hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, 1)
-                        task.wait(0.1)
-                        
-                        -- 3. สั่งยิง (Activate)
-                        gun:Activate()
-                        
-                        -- 4. วาร์ปกลับทันที
-                        task.wait(0.1)
-                        hrp.CFrame = oldPos
-                        
-                        task.wait(3.5) -- คูลดาวน์ปืน
-                    end
-                    task.wait(0.5)
-                end
-            end)
-        end
-    end
-})
+
 local OldNameCall
 OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
     local method = getnamecallmethod()
