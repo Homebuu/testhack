@@ -73,14 +73,16 @@ local playerData = {}
 local flingAllEnabled = false
 local pDropdown = nil
 
+local lp = game.Players.LocalPlayer
+local rs = game:GetService("ReplicatedStorage")
+
 game:GetService("TextChatService"):WaitForChild("TextChannels"):WaitForChild("RBXGeneral"):SendAsync("สวัสดี, มันเป็นแมพที่ดี <3")
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 if game.PlaceId == 142823291 then 
-	local remote = ReplicatedStorage
+	local remote = rs
 	    :FindFirstChild("Remotes")
-	    and ReplicatedStorage.Remotes:FindFirstChild("Gameplay")
-	    and ReplicatedStorage.Remotes.Gameplay:FindFirstChild("PlayerDataChanged")
+	    and rs.Remotes:FindFirstChild("Gameplay")
+	    and rs.Remotes.Gameplay:FindFirstChild("PlayerDataChanged")
 end 
 
 -- [[ ESP Variables ]] --
@@ -699,61 +701,79 @@ FlingLuck:Toggle({
     end
 })
 
-local ghostFullBody = nil
-local ghostConnection = nil
-
+local astralBody = nil
+local astralConnection = nil
+local originalPos = nil
 FlingLuck:Toggle({
     Title = "Ghost Mode",
     Desc = "สร้างร่างแยกทิ้งไว้",
     Value = false,
     Callback = function(state)
-        _G.GhostMode = state
+       _G.AstralMode = state
         local lp = game.Players.LocalPlayer
         local char = lp.Character
-        
+        local cam = workspace.CurrentCamera
+
         if state then
             if char and char:FindFirstChild("HumanoidRootPart") then
+                originalPos = char.HumanoidRootPart.CFrame
                 char.Archivable = true
-                ghostFullBody = char:Clone()
-                ghostFullBody.Name = "GhostBody"
-                ghostFullBody.Parent = workspace
                 
-                for _, obj in pairs(ghostFullBody:GetDescendants()) do
-                    if obj:IsA("LocalScript") or obj:IsA("Script") then
-                        obj:Destroy()
-                    end
+                astralBody = char:Clone()
+                astralBody.Name = "AstralPlayer"
+                astralBody.Parent = workspace
+                
+                for _, p in pairs(char:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = false p.Transparency = 0.7 end
                 end
-                
-                task.spawn(function()
-                    while _G.GhostMode do
-                        if char and char:FindFirstChild("HumanoidRootPart") then
-                            for _, part in pairs(char:GetDescendants()) do
-                                if part:IsA("BasePart") then
-                                    part.CanCollide = false
-                                end
+
+                cam.CameraSubject = astralBody.Humanoid
+
+                astralConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                    if astralBody and astralBody:FindFirstChild("Humanoid") and char:FindFirstChild("Humanoid") then
+                        astralBody.Humanoid:Move(char.Humanoid.MoveDirection, false)
+                        
+                        astralBody.HumanoidRootPart.CFrame = CFrame.new(astralBody.HumanoidRootPart.Position) * CFrame.Angles(0, select(2, cam.CFrame:ToEulerAnglesYXZ()), 0)
+                        
+                        char.HumanoidRootPart.CFrame = originalPos
+                        char.HumanoidRootPart.Velocity = Vector3.zero
+
+                        local tool = char:FindFirstChildOfClass("Tool")
+                        if tool then
+                            if not astralBody:FindFirstChild(tool.Name) then
+                                local cloneTool = tool:Clone()
+                                cloneTool.Parent = astralBody
+                            end
+                        else
+                            for _, t in pairs(astralBody:GetChildren()) do
+                                if t:IsA("Tool") then t:Destroy() end
                             end
                         end
-                        task.wait(0.1)
+                    end
+                end)
+                
+                lp:GetMouse().Button1Down:Connect(function()
+                    if _G.AstralMode and astralBody then
+                        local tool = astralBody:FindFirstChildOfClass("Tool")
+                        if tool then tool:Activate() end
                     end
                 end)
             end
         else
-            _G.GhostMode = false
-            if ghostFullBody then
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    char.HumanoidRootPart.CFrame = ghostFullBody.HumanoidRootPart.CFrame
-                end
-                ghostFullBody:Destroy()
-                ghostFullBody = nil
-            end
+            if astralConnection then astralConnection:Disconnect() end
             
-            if char then
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = true
-                    end
+            if astralBody and char:FindFirstChild("HumanoidRootPart") then
+                local finalPos = astralBody.HumanoidRootPart.CFrame
+                astralBody:Destroy()
+                astralBody = nil
+                
+                char.HumanoidRootPart.CFrame = finalPos
+                for _, p in pairs(char:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = true p.Transparency = 0 end
                 end
+                cam.CameraSubject = char.Humanoid
             end
+            _G.AstralMode = false
         end
     end
 })
@@ -859,8 +879,6 @@ local function updateHighlights()
         end
     end
 end
-local lp = game.Players.LocalPlayer
-local rs = game:GetService("ReplicatedStorage")
 
 local function getMurderer()
     for _, v in pairs(game.Players:GetPlayers()) do
