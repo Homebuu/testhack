@@ -701,72 +701,61 @@ FlingLuck:Toggle({
     end
 })
 
+local runService = game:GetService("RunService")
 local fakeChar = nil
 local ghostConnection = nil
 
-FlingLuck:Toggle({
-    Title = "Ghost Mode Fix",
+murderermystery2:Toggle({
+    Title = "Ghost Mode",
+    Desc = "of god of year of regenzy",
     Value = false,
     Callback = function(state)
-        _G.AstralMode = state
-        local lp = game.Players.LocalPlayer
-        local char = lp.Character or lp.CharacterAdded:Wait()
-
+        _G.FullInvisible = state
+        local char = lp.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        
         if state then
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                
+            if char and hrp then
                 char.Archivable = true
                 fakeChar = char:Clone()
                 fakeChar.Name = "FakeBody"
                 fakeChar.Parent = workspace
-
+                
                 for _, v in pairs(fakeChar:GetDescendants()) do
-                    if v:IsA("Script") or v:IsA("LocalScript") then
-                        v:Destroy()
-                    end
+                    if v:IsA("LocalScript") or v:IsA("Script") then v:Destroy() end
                 end
 
-                local fakeRoot = fakeChar:FindFirstChild("HumanoidRootPart")
-                if fakeRoot then
-                    fakeRoot.Anchored = true
-                end
-
-                for _, v in pairs(char:GetDescendants()) do
-                    if v:IsA("BasePart") then
-                        v.LocalTransparencyModifier = 1
-                    end
-                end
-
-                ghostConnection = game:GetService("RunService").RenderStepped:Connect(function()
-                    if _G.AstralMode and char then
-                        local hum = char:FindFirstChildOfClass("Humanoid")
-                        if hum then
-                            hum.PlatformStand = false
-                            hum:ChangeState(Enum.HumanoidStateType.Running)
+                ghostConnection = runService.RenderStepped:Connect(function()
+                    if _G.FullInvisible and char and hrp then
+                        for _, part in pairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.Transparency = 0.5 
+                                part.CanCollide = false -- เดินทะลุคนอื่นได้ (ป้องกันการโดน Fling)
+                            end
                         end
                     end
                 end)
-
+                
+                print("Invisible Enabled: ตอนนี้คนอื่นเห็นคุณอยู่ที่ร่างปลอม!")
             end
         else
-            if ghostConnection then
-                ghostConnection:Disconnect()
-                ghostConnection = nil
-            end
-
-            if fakeChar then
+            if ghostConnection then ghostConnection:Disconnect() end
+            
+            if fakeChar and hrp then
+                hrp.CFrame = fakeChar.HumanoidRootPart.CFrame
                 fakeChar:Destroy()
                 fakeChar = nil
             end
-
+            
             if char then
-                for _, v in pairs(char:GetDescendants()) do
-                    if v:IsA("BasePart") then
-                        v.LocalTransparencyModifier = 0
-                        v.CanCollide = true
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Transparency = 0
+                        part.CanCollide = true
                     end
                 end
             end
+            print("Invisible Disabled: กลับมาเป็นปกติแล้ว")
         end
     end
 })
