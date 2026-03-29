@@ -542,51 +542,42 @@ FlingLuck:Toggle({
             local target = game.Players:FindFirstChild(selectedPlayer)
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                 local originalCFrame = hrp.CFrame
-                local angle = 0 -- ตัวแปรองศาสำหรับการหมุน
-                
+					
                 task.spawn(function()
-                    WindUI:Notify({Title = "Flinging...", Content = "กำลังเหวี่ยง " .. selectedPlayer, Type = "Warning"})
-
-                    while flingEnabled and char and hrp and target and target.Character do
-                        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-                        if not targetHrp then break end
-                        
-                        -- 1. ปิด Collision และล้างส่วนเกิน (กันติดกล่องขาว)
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then 
-                                part.CanCollide = false 
-                            end
-                            if part:IsA("SelectionBox") or part:IsA("BoxHandleAdornment") then
-                                part:Destroy()
-                            end
-                        end
-
-                        -- 2. ใส่แรงเหวี่ยงมหาศาล (หัวใจหลักของ Fling)
-                        hrp.Velocity = Vector3.new(0, 8000, 0) -- แรงดันขึ้นข้างบน
-                        hrp.RotVelocity = Vector3.new(8000, 8000, 8000) -- แรงหมุนตัว
-
-                        -- 3. คำนวณ Orbit (หมุนรอบตัว)
-                        angle = angle + 0.8 -- ความเร็วในการวนรอบ (ยิ่งเยอะยิ่งวนเร็ว)
-                        local radius = 1 -- ระยะห่างจากเป้าหมาย (ยิ่งน้อยยิ่งแรง)
-                        local x = math.cos(angle) * radius
-                        local z = math.sin(angle) * radius
-                        
-                        -- 4. วาร์ปไปตำแหน่งที่คำนวณได้ (เน้นกระแทกช่วงล่างของเป้าหมาย)
-                        hrp.CFrame = targetHrp.CFrame * CFrame.new(x, -1.5, z)
-                        
-                        task.wait() 
-                    end
-                    
-                    -- คืนค่าหลังหยุด Fling
-                    if hrp then
-                        hrp.Velocity = Vector3.zero
-                        hrp.RotVelocity = Vector3.zero
-                        hrp.CFrame = originalCFrame
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then part.CanCollide = true end
-                        end
-                    end
-                end)
+				    local angle = 0 
+				    while flingEnabled and char and hrp and target and target.Character do
+				        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+				        if not targetHrp then break end
+				
+				        if targetHrp.AssemblyLinearVelocity.Magnitude > 200 then 
+				            break 
+				        end
+				        
+				        for _, part in pairs(char:GetDescendants()) do
+				            if part:IsA("BasePart") then part.CanCollide = false end
+				        end
+				
+				        hrp.Velocity = Vector3.new(0, 8000, 0) 
+				        hrp.RotVelocity = Vector3.new(8000, 8000, 8000) 
+				
+				        angle = angle + 0.8  
+				        local radius = 0.8   
+				        local offset = Vector3.new(math.cos(angle) * radius, -1.2, math.sin(angle) * radius)
+				        
+				        hrp.CFrame = targetHrp.CFrame * CFrame.new(offset)
+				        
+				        task.wait() 
+				    end
+				    
+				    if hrp then
+				        hrp.Velocity = Vector3.zero
+				        hrp.RotVelocity = Vector3.zero
+				        hrp.CFrame = originalCFrame
+				        for _, part in pairs(char:GetDescendants()) do
+				            if part:IsA("BasePart") then part.CanCollide = true end
+				        end
+				    end
+				end)
             end
         end
     end
