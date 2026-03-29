@@ -745,6 +745,24 @@ local function updateHighlights()
     end
 end
 
+local function getMurderer()
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            local isMurd = false
+            if _G.playerData and _G.playerData[v.Name] then
+                if tostring(_G.playerData[v.Name].Role) == "Murderer" and not _G.playerData[v.Name].Dead then
+                    isMurd = true
+                end
+            elseif v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
+                isMurd = true
+            end
+            
+            if isMurd then return v.Character end
+        end
+    end
+    return nil
+end
+
 -- [[ ส่วนของ Toggle ]] --
 murderermystery2:Toggle({
     Title = "แสดงบทบาทของผู้เล่น (Chams)",
@@ -1074,6 +1092,7 @@ murderermystery2:Toggle({
         end
     end
 })
+
 local killMurdererConnection = nil
 murderermystery2:Toggle({
     Title = "สังหารฆาตกร (WeaponService Mode)",
@@ -1165,6 +1184,27 @@ murderermystery2:Toggle({
         end
     end
 })
+
+local OldNameCall
+OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+
+    if tostring(self) == "GunFired" and method == "FireServer" and _G.KillMurdererOnly then
+        local targetChar = getMurderer()
+        
+        if targetChar and targetChar:FindFirstChild("Head") then
+            local targetHead = targetChar.Head
+            
+            args[3] = tostring(targetHead.Position)
+            args[4] = targetHead
+            
+            return self.FireServer(self, unpack(args))
+        end
+    end
+    return OldNameCall(self, ...)
+end)
+
 local function secureGun()
     local gunDrop = nil
     for _, obj in pairs(workspace:GetDescendants()) do
