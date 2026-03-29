@@ -1002,6 +1002,43 @@ murderermystery2:Toggle({
     end
 })
 
+murderermystery2:Toggle({
+    Title = "music id",
+    Desc = "music ",
+    Value = false,
+    Callback = function(state)
+        if state then
+            -- Popup ขอ ID เพลง
+            ssr:Popup({
+                Title = "ใส่ Music ID",
+                Desc = "กรอก ID เพลงที่ต้องการ",
+                Inputs = {
+                    {
+                        Title = "Music ID",
+                        Placeholder = "126171983182036"
+                    }
+                },
+                Callback = function(values)
+                    local musicID = tonumber(values[1])
+                    if musicID then
+                        -- วนเปลี่ยนเพลงอัตโนมัติ
+                        task.spawn(function()
+                            while state do
+                                local args = {
+                                    [1] = "ToolMusicText",
+                                    [2] = musicID
+                                }
+                                game:GetService("ReplicatedStorage").RE.PlayerToolEvent:FireServer(unpack(args))
+                                task.wait(1) -- ดีเลย์ 1 วิ
+                            end
+                        end)
+                    end
+                end
+            })
+        end
+    end
+})
+
 -- [[ Notification & Start ]] --
 WindUI:Notify({
     Title = "HG HUB V1",
