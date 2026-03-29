@@ -545,34 +545,44 @@ FlingLuck:Toggle({
 					
                 task.spawn(function()
 				    local angle = 0 
-				    while flingEnabled and char and hrp and target and target.Character do
+				    while stopFling and char and hrp and target and target.Character do
 				        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
 				        if not targetHrp then break end
 				
-				        if targetHrp.AssemblyLinearVelocity.Magnitude > 200 then 
+				        -- 1. เช็คถ้าศัตรูกระเด็นไปไกลแล้ว (ความเร็วเกิน 200) ให้หยุดทำงานเพื่อไม่ให้เราบินตาม
+				        if targetHrp.Velocity.Magnitude > 200 then 
 				            break 
 				        end
 				        
+				        -- 2. ปิดกฎฟิสิกส์การชนของตัวเราชั่วคราว
 				        for _, part in pairs(char:GetDescendants()) do
 				            if part:IsA("BasePart") then part.CanCollide = false end
 				        end
 				
-				        hrp.Velocity = Vector3.new(0, 8000, 0) 
-				        hrp.RotVelocity = Vector3.new(8000, 8000, 8000) 
+				        -- 3. ทำให้ตัวเราหมุนรอบตัวเอง (Spin) ด้วยความเร็วสูงมาก
+				        -- ใช้ AngularVelocity หรือตั้งค่า RotVelocity โดยตรง
+				        hrp.RotVelocity = Vector3.new(0, 10000, 0) -- หมุนแกน Y อย่างรวดเร็ว
+				        hrp.Velocity = Vector3.new(0, 5000, 0)    -- พยายามรักษาแรงยกตัว
 				
-				        angle = angle + 0.8  
-				        local radius = 0.8   
+				        -- 4. คำนวณการเคลื่อนที่แบบวงกลมรอบเป้าหมาย (Orbit)
+				        angle = angle + 1.0  -- ความเร็วในการโคจร (ปรับเพิ่มได้)
+				        local radius = 0.5   -- ระยะห่างจากกลางตัวศัตรู (ยิ่งน้อยยิ่งชิด)
+				        
+				        -- คัดลอกตำแหน่งเป้าหมายและคำนวณจุดรอบตัว
 				        local offset = Vector3.new(math.cos(angle) * radius, -1.2, math.sin(angle) * radius)
 				        
-				        hrp.CFrame = targetHrp.CFrame * CFrame.new(offset)
+				        -- 5. อัปเดตตำแหน่งและมุมหมุนของตัวเรา
+				        -- CFrame.fromEulerAnglesXYZ ทำให้ตัวเราหมุนควงขณะเคลื่อนที่
+				        hrp.CFrame = CFrame.new(targetHrp.Position + offset) * CFrame.fromEulerAnglesXYZ(angle*10, angle*10, angle*10)
 				        
 				        task.wait() 
 				    end
 				    
+				    -- เมื่อเลิกทำ หรือศัตรูปลิวไปแล้ว ให้รีเซ็ตสถานะตัวเรา
 				    if hrp then
-				        hrp.Velocity = Vector3.zero
-				        hrp.RotVelocity = Vector3.zero
-				        hrp.CFrame = originalCFrame
+				        hrp.Velocity = Vector3.new(0, 0, 0)
+				        hrp.RotVelocity = Vector3.new(0, 0, 0)
+				        hrp.CFrame = originalCFrame -- กลับไปจุดเริ่มต้น
 				        for _, part in pairs(char:GetDescendants()) do
 				            if part:IsA("BasePart") then part.CanCollide = true end
 				        end
