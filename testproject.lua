@@ -992,8 +992,37 @@ murderermystery2:Toggle({
         end
     end
 })
-
-
+local function secureGun()
+    local gunDrop = workspace:FindFirstChild("GunDrop")
+    if gunDrop and gunDrop:IsA("BasePart") then
+        local lp = game.Players.LocalPlayer
+        local char = lp.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        
+        if root then
+            local currentPos = root.CFrame
+            root.CFrame = gunDrop.CFrame
+            task.wait(0.1)
+            root.CFrame = currentPos
+        end
+    end
+end
+murderermystery2:Toggle({
+    Title = "เก็บปืนอัตโนมัติ (Auto Collect Gun)",
+    Desc = "วาร์ปไปเก็บปืนที่ตกแล้วกลับมาที่เดิมทันที",
+    Value = false,
+    Callback = function(state)
+        _G.AutoCollectGun = state
+        if state then
+            task.spawn(function()
+                while _G.AutoCollectGun do
+                    secureGun()
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+})
 
 -- [[ Notification & Start ]] --
 WindUI:Notify({
