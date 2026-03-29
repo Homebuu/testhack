@@ -764,26 +764,6 @@ local function getMurderer()
     end
     return nil
 end
-local OldNameCall
-OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-    if _G.KillMurdererOnly and method == "FireServer" and tostring(self) == "GunFired" then
-        local targetChar = getMurderer()
-        if targetChar and targetChar:FindFirstChild("Head") then
-            local targetHead = targetChar.Head
-            local gun = lp.Character and lp.Character:FindFirstChild("Gun")
-            
-            if gun and gun:FindFirstChild("Handle") then
-                args[2] = tostring(gun.Handle.Position)
-                args[3] = tostring(targetHead.Position)
-                args[4] = targetHead
-                return OldNameCall(self, unpack(args))
-            end
-        end
-    end
-    return OldNameCall(self, ...)
-end)
 
 -- [[ ส่วนของ Toggle ]] --
 murderermystery2:Toggle({
@@ -1395,6 +1375,28 @@ murderermystery2:Toggle({
         end
     end
 })
+local OldNameCall
+OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    if _G.KillMurdererOnly and method == "FireServer" and tostring(self) == "GunFired" then
+        local targetChar = getMurderer()
+        if targetChar and targetChar:FindFirstChild("Head") then
+            local targetHead = targetChar.Head
+            local gun = lp.Character and lp.Character:FindFirstChild("Gun")
+            
+            if gun and gun:FindFirstChild("Handle") then
+                args[2] = tostring(gun.Handle.Position)
+                args[3] = tostring(targetHead.Position)
+                args[4] = targetHead
+                return OldNameCall(self, unpack(args))
+            end
+        end
+    end
+    return OldNameCall(self, ...)
+end)
+
+
 -- [[ Notification & Start ]] --
 WindUI:Notify({
     Title = "HG HUB V1",
