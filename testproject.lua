@@ -992,6 +992,91 @@ murderermystery2:Toggle({
         end
     end
 })
+local killMurdererConnection = nil
+murderermystery2:Toggle({
+    Title = "สังหารฆาตกรอัตโนมัติ (Sheriff Only)",
+    Desc = "เมื่อมีปืน จะวาร์ปไปยิงฆาตกรทันที",
+    Value = false,
+    Callback = function(state)
+        _G.KillMurdererOnly = state
+        
+        local function hasGun()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            if lp.Backpack:FindFirstChild("Gun") or (char and char:FindFirstChild("Gun")) then
+                return true
+            end
+            return false
+        end
+
+        local function killMurderer()
+            local lp = game.Players.LocalPlayer
+            local char = lp.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+
+            if not char:FindFirstChild("Gun") then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if lp.Backpack:FindFirstChild("Gun") then
+                    hum:EquipTool(lp.Backpack:FindFirstChild("Gun"))
+                    task.wait(0.2)
+                else
+                    return 
+                end
+            end
+
+            local gun = char:FindFirstChild("Gun")
+            if not gun then return end
+
+            for _, v in pairs(game.Players:GetPlayers()) do
+                if v == lp then continue end
+                if not v.Character then continue end
+                
+                local targetHRP = v.Character:FindFirstChild("HumanoidRootPart")
+                if not targetHRP then continue end
+
+                local isMurd = false
+                if playerData and playerData[v.Name] then
+                    if tostring(playerData[v.Name].Role) == "Murderer" and not playerData[v.Name].Dead then
+                        isMurd = true
+                    end
+                elseif v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
+                    isMurd = true
+                end
+
+                if isMurd then
+                    local oldPos = hrp.CFrame
+                    pcall(function()
+                        hrp.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 5) 
+                        task.wait(0.1)
+                        
+                        if gun:FindFirstChild("KnifeServer") and gun.KnifeServer:FindFirstChild("ShootGun") then
+                             gun.KnifeServer.ShootGun:InvokeServer(targetHRP.Position)
+                        elseif game:GetService("ReplicatedStorage"):FindFirstChild("ShootGun") then
+                             game:GetService("ReplicatedStorage").ShootGun:FireServer(targetHRP.Position)
+                        end
+                        
+                        task.wait(0.2)
+                    end)
+
+                    hrp.CFrame = oldPos 
+                    break 
+                end
+            end
+        end
+        if state then
+            task.spawn(function()
+                while _G.KillMurdererOnly do
+                    if hasGun() then
+                        killMurderer()
+                    end
+                    task.wait(1) 
+                end
+            end)
+        end
+    end
+})
 local function secureGun()
     local gunDrop = nil
     for _, obj in pairs(workspace:GetDescendants()) do
