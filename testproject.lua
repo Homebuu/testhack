@@ -1191,7 +1191,87 @@ murderermystery2:Toggle({
         _G.KillMurdererOnly = state
     end
 })
+murderermystery2:Toggle({
+    Title = "สังหารฆาตกร (Instant Kill V3)",
+    Desc = "วาร์ปไปจ่อหัวยิงแล้วกลับที่เดิมทันที (แม่นยำ 100%)",
+    Value = false,
+    Callback = function(state)
+        _G.KillMurdererOnly = state
+        local lp = game.Players.LocalPlayer
 
+        local function shootTarget(targetChar)
+            local char = lp.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local gun = char:FindFirstChild("Gun") or lp.Backpack:FindFirstChild("Gun")
+            
+            if not hrp or not gun or not targetChar:FindFirstChild("Head") then return end
+            
+            local targetHead = targetChar.Head
+            local oldPos = hrp.CFrame
+
+            -- 1. ควักปืน (สำคัญมาก ถ้าไม่ถือปืนยิงไม่ได้)
+            if gun.Parent ~= char then
+                char.Humanoid:EquipTool(gun)
+                task.wait(0.15)
+            end
+
+            pcall(function()
+                -- 2. วาร์ปไปจ่อที่หัวฆาตกรแบบประชิด (ระยะ 2 หน่วย)
+                hrp.CFrame = targetHead.CFrame * CFrame.new(0, 0, 2)
+                task.wait(0.05) -- รอให้ตำแหน่งอัปเดตบนเซิร์ฟเวอร์แป๊บเดียว
+
+                -- 3. เตรียม Args (ลองส่งแบบ Vector3 ตรงๆ เพราะบางครั้ง String มันบัค)
+                local origin = gun.Handle.Position
+                local targetPos = targetHead.Position
+                
+                -- ตรวจสอบ Path ของ Remote (ดึงมาจาก ReplicatedStorage)
+                local rs = game:GetService("ReplicatedStorage")
+                local weaponService = rs:FindFirstChild("ClientServices") and rs.ClientServices.WeaponService
+                local gunFired = weaponService and weaponService:FindFirstChild("GunFired")
+
+                if gunFired then
+                    -- ส่งแบบผสม (ลองทั้ง String และ Vector3 ตามที่ระบบต้องการ)
+                    local posStr = tostring(targetPos.X)..", "..tostring(targetPos.Y)..", "..tostring(targetPos.Z)
+                    local originStr = tostring(origin.X)..", "..tostring(origin.Y)..", "..tostring(origin.Z)
+                    
+                    -- ยิง!
+                    gunFired:FireServer(gun.Handle, originStr, posStr, targetHead)
+                end
+                
+                -- 4. ยิงเสร็จแล้ววาร์ปกลับทันที
+                task.wait(0.05)
+                hrp.CFrame = oldPos
+            end)
+        end
+
+        if state then
+            task.spawn(function()
+                while _G.KillMurdererOnly do
+                    for _, v in pairs(game.Players:GetPlayers()) do
+                        if not _G.KillMurdererOnly then break end
+                        if v ~= lp and v.Character and v.Character:FindFirstChild("Head") then
+                            local isMurd = false
+                            -- เช็ค Role จาก Data ของ YARHM
+                            if _G.playerData and _G.playerData[v.Name] then
+                                if tostring(_G.playerData[v.Name].Role) == "Murderer" and not _G.playerData[v.Name].Dead then
+                                    isMurd = true
+                                end
+                            elseif v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
+                                isMurd = true
+                            end
+
+                            if isMurd then
+                                shootTarget(v.Character)
+                                task.wait(2) -- คูลดาวน์ปืน MM2 คือประมาณ 1.5 - 2 วินาที
+                            end
+                        end
+                    end
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+})
 local function secureGun()
     local gunDrop = nil
     for _, obj in pairs(workspace:GetDescendants()) do
