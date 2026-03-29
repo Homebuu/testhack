@@ -702,60 +702,82 @@ FlingLuck:Toggle({
 })
 
 local runService = game:GetService("RunService")
-local fakeChar = nil
-local ghostConnection = nil
+local cam = workspace.CurrentCamera
 
-murderermystery2:Toggle({
+local ghostChar = nil 
+local ghostConnection = nil
+local originalCFrame = nil
+
+local function cleanUpGhost()
+    if ghostConnection then ghostConnection:Disconnect(); ghostConnection = nil end
+    if ghostChar then
+        ghostChar:Destroy()
+        ghostChar = nil
+    end
+end
+
+FlingLuck:Toggle({
     Title = "Ghost Mode",
     Desc = "of god of year of regenzy",
     Value = false,
     Callback = function(state)
-        _G.FullInvisible = state
+        _G.AstralMode = state
         local char = lp.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
         
         if state then
-            if char and hrp then
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                originalCFrame = char.HumanoidRootPart.CFrame
                 char.Archivable = true
-                fakeChar = char:Clone()
-                fakeChar.Name = "FakeBody"
-                fakeChar.Parent = workspace
                 
-                for _, v in pairs(fakeChar:GetDescendants()) do
-                    if v:IsA("LocalScript") or v:IsA("Script") then v:Destroy() end
+                ghostChar = char:Clone()
+                ghostChar.Name = "Ghost_Spirit"
+                ghostChar.Parent = workspace
+                
+                for _, obj in pairs(ghostChar:GetDescendants()) do
+                    if obj:IsA("LocalScript") or obj:IsA("Script") or obj:IsA("BillboardGui") then 
+                        obj:Destroy() 
+                    end
+                    if obj:IsA("BasePart") or obj:IsA("Decal") then
+                        obj.Transparency = 0.5
+                    end
                 end
 
+                cam.CameraSubject = ghostChar.Humanoid
+
                 ghostConnection = runService.RenderStepped:Connect(function()
-                    if _G.FullInvisible and char and hrp then
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                part.Transparency = 0.5 
-                                part.CanCollide = false -- เดินทะลุคนอื่นได้ (ป้องกันการโดน Fling)
+                    if _G.AstralMode and ghostChar and char then
+                        ghostChar.Humanoid:Move(char.Humanoid.MoveDirection, false)
+                        
+                        ghostChar.HumanoidRootPart.CFrame = CFrame.new(ghostChar.HumanoidRootPart.Position) * CFrame.Angles(0, select(2, cam.CFrame:ToEulerAnglesYXZ()), 0)
+                        
+                        char.HumanoidRootPart.CFrame = originalCFrame
+                        char.HumanoidRootPart.Velocity = Vector3.zero
+                        
+                        local realTool = char:FindFirstChildOfClass("Tool")
+                        if realTool then
+                            if not ghostChar:FindFirstChild(realTool.Name) then
+                                local cloneTool = realTool:Clone()
+                                cloneTool.Parent = ghostChar
+                            end
+                            if game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                                local t = ghostChar:FindFirstChild(realTool.Name)
+                                if t then t:Activate() end
+                            end
+                        else
+                            for _, t in pairs(ghostChar:GetChildren()) do
+                                if t:IsA("Tool") then t:Destroy() end
                             end
                         end
                     end
                 end)
-                
-                print("Invisible Enabled: ตอนนี้คนอื่นเห็นคุณอยู่ที่ร่างปลอม!")
             end
         else
-            if ghostConnection then ghostConnection:Disconnect() end
-            
-            if fakeChar and hrp then
-                hrp.CFrame = fakeChar.HumanoidRootPart.CFrame
-                fakeChar:Destroy()
-                fakeChar = nil
+            if ghostChar and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = ghostChar.HumanoidRootPart.CFrame
+                cam.CameraSubject = char.Humanoid
             end
-            
-            if char then
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Transparency = 0
-                        part.CanCollide = true
-                    end
-                end
-            end
-            print("Invisible Disabled: กลับมาเป็นปกติแล้ว")
+            cleanUpGhost()
+            _G.AstralMode = false
         end
     end
 })
