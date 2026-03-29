@@ -1190,18 +1190,17 @@ OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
 
-    if tostring(self) == "GunFired" and method == "FireServer" and _G.KillMurdererOnly then
-        local targetChar = getMurderer()
-        
-        if targetChar and targetChar:FindFirstChild("Head") then
-            local targetHead = targetChar.Head
-            
-            args[3] = tostring(targetHead.Position)
-            args[4] = targetHead
-            
-            return self.FireServer(self, unpack(args))
+    if _G.KillMurdererOnly and self and typeof(self) == "Instance" and method == "FireServer" then
+        if tostring(self) == "GunFired" then
+            local targetChar = getMurderer()
+            if targetChar and targetChar:FindFirstChild("Head") then
+                args[3] = tostring(targetChar.Head.Position)
+                args[4] = targetChar.Head
+                return self.FireServer(self, unpack(args))
+            end
         end
     end
+
     return OldNameCall(self, ...)
 end)
 
