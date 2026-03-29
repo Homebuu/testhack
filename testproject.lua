@@ -465,6 +465,64 @@ PlayerVisible:Colorpicker({
 
 -- [[ ฟังก์ชั่นเถื่อน ]] --
 FlingLuck:Toggle({
+    Title = "Anti-Fling",
+    Desc = "คนอื่นจะทะลุตัวคุณ ไม่สามารถ Fling คุณได้",
+    Value = false,
+    Callback = function(state)
+        _G.AntiFling = state
+        local lp = game.Players.LocalPlayer
+        local runService = game:GetService("RunService")
+        
+        if state then
+            _G.AntiFlingConnection = runService.Stepped:Connect(function()
+                if not _G.AntiFling then 
+                    if _G.AntiFlingConnection then 
+                        _G.AntiFlingConnection:Disconnect() 
+                    end 
+                    return 
+                end
+                
+                local char = lp.Character
+                if char then
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+            
+            task.spawn(function()
+                while _G.AntiFling do
+                    local char = lp.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        if hrp.Velocity.Magnitude > 75 then
+                            hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0)
+                            hrp.RotVelocity = Vector3.zero
+                        end
+                    end
+                    task.wait(0.1)
+                end
+            end)
+        else
+            if _G.AntiFlingConnection then
+                _G.AntiFlingConnection:Disconnect()
+                _G.AntiFlingConnection = nil
+            end
+            local char = lp.Character
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") and part.Name == "HumanoidRootPart" then
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end
+    end
+})
+
+FlingLuck:Toggle({
     Title = "Fling Player",
     Desc = "เตะผู้เล่นออกจากแมพ > เลือกจากเมณูค้นหา Teleport",
     Value = false,
@@ -603,7 +661,7 @@ FlingLuck:Toggle({
                             tracer.From = Camera.ViewportSize / 2
                             tracer.To = Vector2.new(pos.X, pos.Y)
                             tracer.Visible = true
-                            getgenv().TargetPosition = hrp.CFrame -- เก็บค่า CFrame ไว้
+                            getgenv().TargetPosition = hrp.CFrame 
                             return
                         end
                     end
@@ -614,7 +672,6 @@ FlingLuck:Toggle({
                 getgenv().TargetPosition = nil
             end)
 
-            -- [[ ส่วนที่แก้ไขให้ล็อคแม่นขึ้น ]]
             local mt = getrawmetatable(game)
             local old = mt.__namecall
             setreadonly(mt, false)
@@ -625,7 +682,6 @@ FlingLuck:Toggle({
                 
                 if getgenv().AimbotEnabled and getgenv().TargetPosition then
                     if m == "FireServer" or m == "InvokeServer" then
-                        -- วนลูปเช็คทุก Argument ว่าอันไหนเป็นตำแหน่งพิกัด
                         for i, v in pairs(a) do
                             if typeof(v) == "Vector3" then
                                 a[i] = getgenv().TargetPosition.Position
@@ -643,70 +699,12 @@ FlingLuck:Toggle({
     end
 })
 
-FlingLuck:Toggle({
-    Title = "Anti-Fling (ป้องกันการโดนสะบัด)",
-    Desc = "คนอื่นจะทะลุตัวคุณ ไม่สามารถ Fling คุณได้",
-    Value = false,
-    Callback = function(state)
-        _G.AntiFling = state
-        local lp = game.Players.LocalPlayer
-        local runService = game:GetService("RunService")
-        
-        if state then
-            _G.AntiFlingConnection = runService.Stepped:Connect(function()
-                if not _G.AntiFling then 
-                    if _G.AntiFlingConnection then 
-                        _G.AntiFlingConnection:Disconnect() 
-                    end 
-                    return 
-                end
-                
-                local char = lp.Character
-                if char then
-                    for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        end
-                    end
-                end
-            end)
-            
-            task.spawn(function()
-                while _G.AntiFling do
-                    local char = lp.Character
-                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        if hrp.Velocity.Magnitude > 75 then
-                            hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0)
-                            hrp.RotVelocity = Vector3.zero
-                        end
-                    end
-                    task.wait(0.1)
-                end
-            end)
-        else
-            if _G.AntiFlingConnection then
-                _G.AntiFlingConnection:Disconnect()
-                _G.AntiFlingConnection = nil
-            end
-            local char = lp.Character
-            if char then
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") and part.Name == "HumanoidRootPart" then
-                        part.CanCollide = true
-                    end
-                end
-            end
-        end
-    end
-})
-
 local ghostFullBody = nil
 local ghostConnection = nil
 
 FlingLuck:Toggle({
-    Title = "โหมดหายตัว (Ghost Mode)",
-    Desc = "สร้างร่างแยกทิ้งไว้ แล้วตัวจริงจะหายตัวไปที่ไหนก็ได้",
+    Title = "Ghost Mode",
+    Desc = "สร้างร่างแยกทิ้งไว้",
     Value = false,
     Callback = function(state)
         _G.GhostMode = state
@@ -715,25 +713,20 @@ FlingLuck:Toggle({
         
         if state then
             if char and char:FindFirstChild("HumanoidRootPart") then
-                -- 1. สร้างร่างแยก (Fake Body) เพื่อให้คนอื่นเห็นว่าเราอยู่ที่นี่
                 char.Archivable = true
                 ghostFullBody = char:Clone()
                 ghostFullBody.Name = "GhostBody"
                 ghostFullBody.Parent = workspace
                 
-                -- ลบสคริปต์และของที่ไม่จำเป็นในร่างปลอมออก
                 for _, obj in pairs(ghostFullBody:GetDescendants()) do
                     if obj:IsA("LocalScript") or obj:IsA("Script") then
                         obj:Destroy()
                     end
                 end
                 
-                -- 2. ทำให้ร่างจริง "หายตัว" โดยการดันลงไปใต้ดินเล็กน้อย หรือทำให้โปร่งใส
-                -- ใน MM2 วิธีที่เนียนที่สุดคือการถอด Character ออกจากสายตาเซิร์ฟเวอร์
                 task.spawn(function()
                     while _G.GhostMode do
                         if char and char:FindFirstChild("HumanoidRootPart") then
-                            -- ปิดการชนกันเพื่อให้เดินผ่านกำแพงได้ด้วย (Ghost)
                             for _, part in pairs(char:GetDescendants()) do
                                 if part:IsA("BasePart") then
                                     part.CanCollide = false
@@ -743,23 +736,17 @@ FlingLuck:Toggle({
                         task.wait(0.1)
                     end
                 end)
-
-                -- แจ้งเตือนผู้ใช้
-                print("Ghost Mode Enabled: ตัวจริงของคุณกำลังซ่อนอยู่!")
             end
         else
-            -- 3. ปิดโหมดหายตัว: ลบร่างปลอมและวาร์ปกลับมาที่ร่างปลอม
             _G.GhostMode = false
             if ghostFullBody then
                 if char and char:FindFirstChild("HumanoidRootPart") then
-                    -- วาร์ปตัวจริงกลับมาที่ตำแหน่งร่างแยกก่อนลบทิ้ง
                     char.HumanoidRootPart.CFrame = ghostFullBody.HumanoidRootPart.CFrame
                 end
                 ghostFullBody:Destroy()
                 ghostFullBody = nil
             end
             
-            -- คืนค่าการชนกันให้เป็นปกติ
             if char then
                 for _, part in pairs(char:GetDescendants()) do
                     if part:IsA("BasePart") then
@@ -767,7 +754,6 @@ FlingLuck:Toggle({
                     end
                 end
             end
-            print("Ghost Mode Disabled: กลับสู่ร่างปกติ")
         end
     end
 })
@@ -778,7 +764,7 @@ discordBTN:Button({
     Callback = function()
         WindUI:Popup({
             Title = "Discord Invitation",
-            Icon = "message-square", -- ไอคอนข้อความ
+            Icon = "message-square", 
             Content = "คุณต้องการคัดลอกลิงก์ Discord ไปยัง Clipboard หรือไม่?",
             Buttons = {
                 {
@@ -1224,7 +1210,7 @@ murderermystery2:Toggle({
 })
 
 murderermystery2:Toggle({
-    Title = "สังหาร Murderer V3 ",
+    Title = "สังหาร Murderer V3 (Sheriff ooly)",
     Desc = "วาร์ปไปสิงร่างฆาตกรแล้วยิง",
     Value = false,
     Callback = function(state)
@@ -1265,7 +1251,7 @@ murderermystery2:Toggle({
 
 murderermystery2:Toggle({
     Title = "Silent Aim (ล็อคเป้าฆาตกร)",
-    Desc = "กดยิงมั่วๆ ก็เข้าหัวฆาตกร 100% (ต้องมีปืน)",
+    Desc = "ล็อคเป้าฆาตกร 100% (ต้องมีปืน)",
     Value = false,
     Callback = function(state)
         _G.KillMurdererOnly = state
@@ -1296,6 +1282,7 @@ local function secureGun()
         end
     end
 end
+
 murderermystery2:Toggle({
     Title = "เก็บปืนอัตโนมัติ (Auto Collect Gun)",
     Desc = "วาร์ปไปเก็บปืนที่ตกแล้วกลับมาที่เดิมทันที",
