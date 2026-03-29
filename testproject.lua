@@ -745,24 +745,6 @@ local function updateHighlights()
     end
 end
 
-local function getMurderer()
-    for _, v in pairs(game.Players:GetPlayers()) do
-        if v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-            local isMurd = false
-            if _G.playerData and _G.playerData[v.Name] then
-                if tostring(_G.playerData[v.Name].Role) == "Murderer" and not _G.playerData[v.Name].Dead then
-                    isMurd = true
-                end
-            elseif v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
-                isMurd = true
-            end
-            
-            if isMurd then return v.Character end
-        end
-    end
-    return nil
-end
-
 -- [[ ส่วนของ Toggle ]] --
 murderermystery2:Toggle({
     Title = "แสดงบทบาทของผู้เล่น (Chams)",
