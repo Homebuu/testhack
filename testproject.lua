@@ -43,7 +43,7 @@ local Window = WindUI:CreateWindow({
         Key = { "HomebuuKuy56", "HomebuuKuy54", "Home56" },
         Note = "กรุณานำคีย์ที่ได้จากทางเรา มาใส่เพื่อรันสคริปต์. -> (https://discord.gg/AZ9tvMCmY7)",
         URL = "https://www.youtube.com/watch?v=euZX5k9pato&list=RDbo4KbfLar8c&index=9",
-        SaveKey = false, -- automatically save and load the key.
+        SaveKey = true, -- automatically save and load the key.
     },
 	
 })
