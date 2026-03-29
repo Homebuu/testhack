@@ -544,46 +544,39 @@ FlingLuck:Toggle({
                 local originalCFrame = hrp.CFrame
 					
                 -- [[ ส่วนหนึ่งของลูปในฟังก์ชัน Fling ]] --
-				local SPIN_SPEED = 200000 -- เพิ่มความเร็วการหมุนให้สูงขึ้นมหาศาล
-				local ORBIT_SPEED = 2.0   -- เพิ่มความเร็วในการบินรอบเป้าหมาย
-				local ORBIT_RADIUS = 0.2  -- ระยะห่างน้อยลงเพื่อให้ติดกับตัวศัตรูมากขึ้น
-				
 				task.spawn(function()
 				    local angle = 0 
-				    local initialPos = hrp.CFrame
-				    
 				    while flingEnabled and char and hrp and target and target.Character do
 				        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
 				        if not targetHrp then break end
 				
-				        -- เช็คถ้าศัตรูปลิวไปไกลแล้วให้หยุด
-				        if targetHrp.Velocity.Magnitude > 300 then 
+				        if targetHrp.AssemblyLinearVelocity.Magnitude > 200 then 
 				            break 
 				        end
 				        
-				        -- การปิด CanCollide ยังจำเป็นในบางจังหวะเพื่อไม่ให้เรา 'เด้ง' ออกมาเองก่อนจะถึงตัว
-				        -- แต่เราจะเน้นไปที่การอัดฉีดความเร็ว (Velocity) แทน
-				        
-				        -- ใส่ความเร็วการหมุนแบบมหาศาลทุกแกน
-				        hrp.RotVelocity = Vector3.new(SPIN_SPEED, SPIN_SPEED, SPIN_SPEED)
-				        -- ใส่ความเร็วหลอกๆ ให้ระบบฟิสิกส์คำนวณแรงปะทะหนักขึ้น
-				        hrp.Velocity = Vector3.new(0, 10000, 0) 
+				 --       for _, part in pairs(char:GetDescendants()) do
+				     --       if part:IsA("BasePart") then part.CanCollide = false end
+				 --       end
 				
-				        -- คำนวณตำแหน่งการหมุนรอบเป้าหมาย (Orbit)
-				        angle = angle + ORBIT_SPEED
-				        local offset = Vector3.new(math.cos(angle) * ORBIT_RADIUS, -1.0, math.sin(angle) * ORBIT_RADIUS)
+				        hrp.Velocity = Vector3.new(0, 5000, 0) 
+				        hrp.RotVelocity = Vector3.new(5000, 5000, 5000) 
+				
+				        angle = angle + 0.8  -- ปรับความเร็วการหมุนที่นี่
+				        local radius = 0.8   -- ระยะห่าง (ยิ่งน้อยยิ่งชิดและแรง)
+				        local offset = Vector3.new(math.cos(angle) * radius, -1.2, math.sin(angle) * radius)
 				        
-				        -- ย้ายตำแหน่งไปหาศัตรูพร้อมหมุนตัวสุ่มทิศทางแบบรวดเร็ว
-				        hrp.CFrame = CFrame.new(targetHrp.Position + offset) * CFrame.fromEulerAnglesXYZ(math.random(100), math.random(100), math.random(100))
+				        hrp.CFrame = targetHrp.CFrame * CFrame.new(offset)
 				        
 				        task.wait() 
 				    end
 				    
-				    -- จบการทำงาน: คืนค่าสถานะและหยุดความเร็ว
 				    if hrp then
-				        hrp.Velocity = Vector3.new(0, 0, 0)
-				        hrp.RotVelocity = Vector3.new(0, 0, 0)
-				        hrp.CFrame = initialPos
+				        hrp.Velocity = Vector3.zero
+				        hrp.RotVelocity = Vector3.zero
+				        hrp.CFrame = originalCFrame -- คืนตำแหน่งเดิม
+				  --      for _, part in pairs(char:GetDescendants()) do
+				     --       if part:IsA("BasePart") then part.CanCollide = true end
+				   --     end
 				    end
 				end)
             end
