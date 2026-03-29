@@ -701,130 +701,72 @@ FlingLuck:Toggle({
     end
 })
 
--- [[ ตัวแปรหลักสำหรับเก็บสถานะ (วางไว้บนสุดของสคริปต์) ]] --
-local runService = game:GetService("RunService")
-local inputService = game:GetService("UserInputService")
-local cam = workspace.CurrentCamera
-
-local ghostChar = nil -- เก็บตัวร่างแยก
-local ghostConnection = nil -- เก็บการเชื่อมต่อ RunService
-local clickConnection = nil -- เก็บการเชื่อมต่อ MouseClick
-local originalCFrame = nil -- เก็บตำแหน่งร่างจริง
+local fakeChar = nil
+local ghostConnection = nil
 
 FlingLuck:Toggle({
-    Title = "Ghost Mode V4 (YARHM Spirit)",
-    Desc = "ตัวจริงยืนนิ่งจุดเดิม ร่างแยกหายตัวไปตีคนได้ปกติ",
+    Title = "Ghost Mode Fix",
     Value = false,
     Callback = function(state)
-        _G.GhostMode = state
-        local char = lp.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        
+        _G.AstralMode = state
+        local lp = game.Players.LocalPlayer
+        local char = lp.Character or lp.CharacterAdded:Wait()
+
         if state then
-            if char and hrp then
+            if char and char:FindFirstChild("HumanoidRootPart") then
                 
-                originalCFrame = hrp.CFrame
                 char.Archivable = true
-                
-                -- [[ 1. สร้างร่างแยกที่เหมือนตัวเรา 100% ]] --
-                ghostChar = char:Clone()
-                ghostChar.Name = "SpiritBody"
-                ghostChar.Parent = workspace
-                
-                -- ลบ Script ในร่างแยกออก
-                for _, obj in pairs(ghostChar:GetDescendants()) do
-                    if obj:IsA("LocalScript") or obj:IsA("Script") then obj:Destroy() end
-                end
+                fakeChar = char:Clone()
+                fakeChar.Name = "FakeBody"
+                fakeChar.Parent = workspace
 
-                -- [[ 2. ทำให้ร่างแยก "หายตัว" จากคนอื่น ]] --
-                for _, part in pairs(ghostChar:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        -- ในเครื่องเราเองจะเห็นเป็นร่างเงาๆ
-                        part.Transparency = 0.5 
-                        part.CanCollide = true -- เดินชน Part ได้ปกติ ไม่ทะลุแมพ
+                for _, v in pairs(fakeChar:GetDescendants()) do
+                    if v:IsA("Script") or v:IsA("LocalScript") then
+                        v:Destroy()
                     end
                 end
 
-                -- ทำให้ร่างจริงโปร่งใสและ NoClip (ซ่อนตัว)
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Transparency = 1 -- ตัวจริงหายไปเลย
-                        part.CanCollide = false
+                local fakeRoot = fakeChar:FindFirstChild("HumanoidRootPart")
+                if fakeRoot then
+                    fakeRoot.Anchored = true
+                end
+
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.LocalTransparencyModifier = 1
                     end
                 end
 
-                -- [[ 3. ย้ายกล้องไปที่ร่างแยก ]] --
-                cam.CameraSubject = ghostChar.Humanoid
-
-                -- [[ 4. ระบบบังคับร่างแยก (Puppet Control) ]] --
-                ghostConnection = runService.RenderStepped:Connect(function()
-                    if _G.GhostMode and ghostChar and ghostChar:FindFirstChild("Humanoid") and char:FindFirstChild("Humanoid") then
-                        -- Sync การเดินจากแป้นพิมพ์ (W,A,S,D)
-                        local moveDir = char.Humanoid.MoveDirection
-                        ghostChar.Humanoid:Move(moveDir, false)
-                        
-                        -- Sync การหันตัวตามกล้อง
-                        ghostChar.HumanoidRootPart.CFrame = CFrame.new(ghostChar.HumanoidRootPart.Position) * CFrame.Angles(0, select(2, cam.CFrame:ToEulerAnglesYXZ()), 0)
-                        
-                        -- ล็อคตัวจริงไว้ที่เดิม (ปลอดภัย 100%)
-                        char.HumanoidRootPart.CFrame = originalCFrame
-                        char.HumanoidRootPart.Velocity = Vector3.zero
-                        char.HumanoidRootPart.RotVelocity = Vector3.zero
-
-                        -- [[ Sync การถือของ (Tool) ]] --
-                        -- ถ้าตัวจริงควักอะไรออกมา ร่างแยกจะควักตามทันที
-                        local realTool = char:FindFirstChildOfClass("Tool")
-                        if realTool then
-                            if not ghostChar:FindFirstChild(realTool.Name) then
-                                local cloneTool = realTool:Clone()
-                                cloneTool.Parent = ghostChar
-                            end
-                        else
-                            -- ถ้าเก็บของ ร่างแยกก็ต้องเก็บ
-                            for _, t in pairs(ghostChar:GetChildren()) do
-                                if t:IsA("Tool") then t:Destroy() end
-                            end
+                ghostConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                    if _G.AstralMode and char then
+                        local hum = char:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            hum.PlatformStand = false
+                            hum:ChangeState(Enum.HumanoidStateType.Running)
                         end
                     end
                 end)
-                
-                -- [[ 5. ระบบคลิกเพื่อโจมตี (Mouse Attack) ]] --
-                clickConnection = lp:GetMouse().Button1Down:Connect(function()
-                    if _G.GhostMode and ghostChar then
-                        local tool = ghostChar:FindFirstChildOfClass("Tool")
-                        if tool then 
-                            -- สั่งให้ Tool ของร่างแยกทำงาน (ยิง/ตี)
-                            tool:Activate() 
-                            
-                            -- ใน MM2 เราอาจต้องส่ง Remote Stab/Slash เพิ่มถ้าใช้มีด
-                            if tool:FindFirstChild("Stab") then
-                                -- tool.Stab:FireServer("Slash") -- ยกเลิกคอมเม้นถ้าจะใช้มีด
-                            end
-                        end
-                    end
-                end)
-                
-                print(" Ghost Mode: เปิดใช้งาน! (ตัวจริงปลอดภัยที่จุดเดิม)")
+
             end
         else
-            -- [[ 6. สลับกลับร่างจริง ]] --
-            cleanUpGhost() -- ล้างร่างแยกออกให้หมด
-            
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                -- คืนมุมกล้อง
-                cam.CameraSubject = char.Humanoid
-                -- คืนค่าตัวจริง
-                char.HumanoidRootPart.CFrame = originalCFrame
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Transparency = 0
-                        part.CanCollide = true
+            if ghostConnection then
+                ghostConnection:Disconnect()
+                ghostConnection = nil
+            end
+
+            if fakeChar then
+                fakeChar:Destroy()
+                fakeChar = nil
+            end
+
+            if char then
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.LocalTransparencyModifier = 0
+                        v.CanCollide = true
                     end
                 end
             end
-            
-            _G.GhostMode = false
-            print(" Ghost Mode: ปิดใช้งาน! (กลับสู่ร่างปกติ)")
         end
     end
 })
