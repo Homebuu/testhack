@@ -993,16 +993,25 @@ murderermystery2:Toggle({
     end
 })
 local function secureGun()
-    local gunDrop = workspace:FindFirstChild("GunDrop")
-    if gunDrop and gunDrop:IsA("BasePart") then
+    local gunDrop = nil
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name == "GunDrop" then
+            gunDrop = obj
+            break
+        end
+    end
+    if gunDrop then
         local lp = game.Players.LocalPlayer
         local char = lp.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
-        
         if root then
             local currentPos = root.CFrame
-            root.CFrame = gunDrop.CFrame
-            task.wait(0.1)
+            if gunDrop:IsA("Model") then
+                root.CFrame = gunDrop:GetPivot() * CFrame.new(0, 1, 0)
+            else
+                root.CFrame = gunDrop.CFrame * CFrame.new(0, 1, 0)
+            end
+            task.wait(0.3) 
             root.CFrame = currentPos
         end
     end
