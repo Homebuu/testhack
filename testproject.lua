@@ -535,50 +535,57 @@ FlingLuck:Toggle({
         
         if flingEnabled then
             if selectedPlayer == "" or selectedPlayer == nil then
-                WindUI:Notify({Title = "Error!", Content = "กรุณาเลือกผู้เล่นก่อน!", Type = "Error"})
+                 WindUI:Notify({Title = "Error!", Content = "กรุณาเลือกผู้เล่นก่อน!", Type = "Error"})
                 return
             end
 
             local target = game.Players:FindFirstChild(selectedPlayer)
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                 local originalCFrame = hrp.CFrame
-					
-                -- [[ ส่วนหนึ่งของลูปในฟังก์ชัน Fling ]] --
-				task.spawn(function()
-				    local angle = 0 
-				    while flingEnabled and char and hrp and target and target.Character do
-				        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-				        if not targetHrp then break end
-				
-				        if targetHrp.AssemblyLinearVelocity.Magnitude > 200 then 
-				            break 
-				        end
-				        
-				 --       for _, part in pairs(char:GetDescendants()) do
-				     --       if part:IsA("BasePart") then part.CanCollide = false end
-				 --       end
-				
-				        hrp.Velocity = Vector3.new(0, 25000, 0) 
-				        hrp.RotVelocity = Vector3.new(10000, 10000, 10000) 
-				
-				        angle = angle + 0.8  -- ปรับความเร็วการหมุนที่นี่
-				        local radius = 0.8   -- ระยะห่าง (ยิ่งน้อยยิ่งชิดและแรง)
-				        local offset = Vector3.new(math.cos(angle) * radius, -1.2, math.sin(angle) * radius)
-				        
-				        hrp.CFrame = targetHrp.CFrame * CFrame.new(offset)
-				        
-				        task.wait() 
-				    end
-				    
-				    if hrp then
-				        hrp.Velocity = Vector3.zero
-				        hrp.RotVelocity = Vector3.zero
-				        hrp.CFrame = originalCFrame -- คืนตำแหน่งเดิม
-				  --      for _, part in pairs(char:GetDescendants()) do
-				     --       if part:IsA("BasePart") then part.CanCollide = true end
-				   --     end
-				    end
-				end)
+                
+                task.spawn(function()
+                    local angle = 0 
+                    while flingEnabled and char and hrp and target and target.Character do
+                        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+                        if not targetHrp then break end
+
+                        -- เช็คถ้าเป้าหมายกระเด็นไปแล้ว (ความเร็ว > 500 ตามโค้ดต้นฉบับ)
+                        if targetHrp.Velocity.Magnitude > 500 then 
+                            break 
+                        end
+                        
+                        -- NoClip แบบ Loop เพื่อให้ตัวเราทะลุเป้าหมายได้ตลอด
+                        for _, part in pairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then part.CanCollide = false end
+                        end
+
+                        -- ใส่ความแรง 9e7 (90,000,000) เหมือนในไฟล์ yarhm
+                        hrp.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+                        hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+                        
+                        -- การคำนวณตำแหน่งวาร์ปแบบหมุนรอบตัว (Orbit)
+                        angle = angle + 100 -- เพิ่มมุมหมุนให้เร็วขึ้น
+                        local radius = 0.5 
+                        -- สลับตำแหน่ง X และ Z เพื่อสร้างวงจรการสะบัด
+                        local offset = Vector3.new(math.cos(math.rad(angle)) * radius, -1.2, math.sin(math.rad(angle)) * radius)
+                        
+                        -- วาร์ปไปที่เป้าหมายพร้อมมุมหมุนที่เปลี่ยนไปตลอดเวลา
+                        hrp.CFrame = targetHrp.CFrame * CFrame.new(offset) * CFrame.Angles(math.rad(angle), math.rad(angle), math.rad(angle))
+                        
+                        task.wait() 
+                    end
+                    
+                    -- หยุดแล้วคืนค่าเดิม
+                    if hrp then
+                        hrp.Velocity = Vector3.new(0, 0, 0)
+                        hrp.RotVelocity = Vector3.new(0, 0, 0)
+                        hrp.CFrame = originalCFrame
+                        for _, part in pairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then part.CanCollide = true end
+                        end
+                    end
+                    WindUI:Notify({Title = "Success", Content = "Fling Finished", Type = "Success"})
+                end)
             end
         end
     end
