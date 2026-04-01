@@ -526,6 +526,70 @@ FlingLuck:Toggle({
 
 FlingLuck:Toggle({
     Title = "Fling Player",
+    Desc = "เตะผู้เล่นออกจากแมพ > เลือกจากเมนูค้นหา Teleport",
+    Value = false,
+    Callback = function(state)
+        flingEnabled = state
+        local char = lp.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        
+        if flingEnabled then
+            if selectedPlayer == "" or selectedPlayer == nil then
+                WindUI:Notify({Title = "Error!", Content = "กรุณาเลือกผู้เล่นก่อน!", Type = "Error"})
+                -- คืนสถานะ Toggle ให้เป็น false ถ้าไม่ได้เลือกคน
+                return
+            end
+
+            local target = game.Players:FindFirstChild(selectedPlayer)
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                local originalCFrame = hrp.CFrame
+                
+                task.spawn(function()
+				    local spinAngle = 0 
+				    -- ปิด Collision เพื่อให้ตัวเรามุดเข้าไปในตัวเป้าหมายได้
+				    for _, part in pairs(char:GetDescendants()) do
+				        if part:IsA("BasePart") then part.CanCollide = false end
+				    end
+				
+				    while flingEnabled and char and hrp and target and target.Character do
+				        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+				        if not targetHrp then break end
+				
+				        if targetHrp.AssemblyLinearVelocity.Magnitude > 300 then break end
+				        
+				        -- หัวใจหลัก: ให้ Velocity พุ่งไปมาเพื่อป่วนฟิสิกส์
+				        hrp.Velocity = Vector3.new(99999, 99999, 99999) 
+				        
+				        -- เพิ่มมุมหมุนตัวเอง (Spin)
+				        spinAngle = spinAngle + 0.5 -- ความเร็วพายุ
+				        
+				        -- แก้ไข CFrame: 
+				        -- 1. อยู่ตำแหน่งเดียวกับเป้าหมาย (ไม่ต้องลบ 1.2 แล้ว)
+				        -- 2. หมุนรอบแกน Y (CFrame.Angles) แบบรวดเร็ว
+				        -- 3. สุ่ม Offset เล็กน้อยเพื่อให้ฟิสิกส์มัน "กระแทก"
+				        local randomOffset = Vector3.new(math.random(-1, 1) * 0.1, 0, math.random(-1, 1) * 0.1)
+				        
+				        hrp.CFrame = targetHrp.CFrame * CFrame.Angles(0, spinAngle * 20, 0) * CFrame.new(randomOffset)
+				        
+				        task.wait() -- ใช้ task.wait() เพื่อให้ลูปวิ่งเร็วที่สุด
+				    end
+				    
+				    -- คืนค่าเดิมเมื่อปิด
+				    if hrp then
+				        hrp.Velocity = Vector3.zero
+				        hrp.CFrame = originalCFrame
+				        for _, part in pairs(char:GetDescendants()) do
+				            if part:IsA("BasePart") then part.CanCollide = true end
+				        end
+				    end
+				end)
+            end
+        end
+    end
+})
+
+FlingLuck:Toggle({
+    Title = "Fling Player",
     Desc = "เตะผู้เล่นออกจากแมพ > เลือกจากเมณูค้นหา Teleport",
     Value = false,
     Callback = function(state)
