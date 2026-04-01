@@ -525,7 +525,7 @@ FlingLuck:Toggle({
 })
 
 FlingLuck:Toggle({
-    Title = "Fling Player",
+    Title = "Fling Player V2",
     Desc = "เตะผู้เล่นออกจากแมพ > เลือกจากเมนูค้นหา Teleport",
     Value = false,
     Callback = function(state)
@@ -546,38 +546,42 @@ FlingLuck:Toggle({
                 
                 task.spawn(function()
 				    local spinAngle = 0 
-				    -- ปิด Collision เพื่อให้ตัวเรามุดเข้าไปในตัวเป้าหมายได้
-				    for _, part in pairs(char:GetDescendants()) do
-				        if part:IsA("BasePart") then part.CanCollide = false end
-				    end
+				    local originalCFrame = hrp.CFrame
+				    
+				    -- สร้าง Force ล็อคตัวเราไม่ให้กระเด็น (Anti-Knockback)
+				    local stabilizer = Instance.new("BodyVelocity")
+				    stabilizer.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+				    stabilizer.Velocity = Vector3.new(0, 0, 0)
+				    stabilizer.Parent = hrp
 				
 				    while flingEnabled and char and hrp and target and target.Character do
 				        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
 				        if not targetHrp then break end
 				
-				        if targetHrp.AssemblyLinearVelocity.Magnitude > 300 then break end
+				        -- ปิดการชนกันแบบ Real-time (ป้องกันตัวเรากระเด็น)
+				        for _, part in pairs(char:GetDescendants()) do
+				            if part:IsA("BasePart") then 
+				                part.CanCollide = false 
+				                part.Velocity = Vector3.new(9e7, 9e7, 9e7) -- ให้ Velocity ส่วนตัวสูงมากเพื่อดีดคนอื่น
+				            end
+				        end
 				        
-				        -- หัวใจหลัก: ให้ Velocity พุ่งไปมาเพื่อป่วนฟิสิกส์
-				        hrp.Velocity = Vector3.new(99999, 99999, 99999) 
+				        spinAngle = spinAngle + 0.8 -- ความเร็วหมุนพายุ
 				        
-				        -- เพิ่มมุมหมุนตัวเอง (Spin)
-				        spinAngle = spinAngle + 0.5 -- ความเร็วพายุ
+				        -- ตำแหน่ง: ให้เราอยู่ตำแหน่งเดียวกับเขา แต่อยู่สูงกว่านิดเดียว (0.1) เพื่อให้ฟิสิกส์ขัดกัน
+				        -- มุม: หมุนติ้วๆ รอบแกน Y
+				        local rotation = CFrame.Angles(0, spinAngle * 25, 0) 
+				        hrp.CFrame = targetHrp.CFrame * rotation * CFrame.new(0, 0.1, 0)
 				        
-				        -- แก้ไข CFrame: 
-				        -- 1. อยู่ตำแหน่งเดียวกับเป้าหมาย (ไม่ต้องลบ 1.2 แล้ว)
-				        -- 2. หมุนรอบแกน Y (CFrame.Angles) แบบรวดเร็ว
-				        -- 3. สุ่ม Offset เล็กน้อยเพื่อให้ฟิสิกส์มัน "กระแทก"
-				        local randomOffset = Vector3.new(math.random(-1, 1) * 0.1, 0, math.random(-1, 1) * 0.1)
-				        
-				        hrp.CFrame = targetHrp.CFrame * CFrame.Angles(0, spinAngle * 20, 0) * CFrame.new(randomOffset)
-				        
-				        task.wait() -- ใช้ task.wait() เพื่อให้ลูปวิ่งเร็วที่สุด
+				        task.wait() 
 				    end
 				    
-				    -- คืนค่าเดิมเมื่อปิด
+				    -- Cleanup เมื่อปิดหรือเป้าหมายกระเด็นไปแล้ว
+				    if stabilizer then stabilizer:Destroy() end
 				    if hrp then
 				        hrp.Velocity = Vector3.zero
-				        hrp.CFrame = originalCFrame
+				        hrp.RotVelocity = Vector3.zero
+				        hrp.CFrame = originalCFrame -- กลับมาที่เดิม
 				        for _, part in pairs(char:GetDescendants()) do
 				            if part:IsA("BasePart") then part.CanCollide = true end
 				        end
