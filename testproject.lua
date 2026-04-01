@@ -526,7 +526,7 @@ FlingLuck:Toggle({
 
 FlingLuck:Toggle({
     Title = "Fling Player",
-    Desc = "เตะผู้เล่นออกจากแมพ > เลือกจากเมณูค้นหา Teleport",
+    Desc = "ควงสว่านบินวนรอบตัวเป้าหมาย (9e7 Power)",
     Value = false,
     Callback = function(state)
         flingEnabled = state
@@ -544,41 +544,46 @@ FlingLuck:Toggle({
                 local originalCFrame = hrp.CFrame
                 
                 task.spawn(function()
-                    local angle = 0 
+                    local rotAngle = 0 -- สำหรับหมุนรอบตัวเอง
+                    local orbitAngle = 0 -- สำหรับบินวนรอบเป้าหมาย
+
                     while flingEnabled and char and hrp and target and target.Character do
                         local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
                         if not targetHrp then break end
 
-                        -- เช็คถ้าเป้าหมายกระเด็นไปแล้ว (ความเร็ว > 500 ตามโค้ดต้นฉบับ)
-                        if targetHrp.Velocity.Magnitude > 500 then 
-                            break 
-                        end
+                        if targetHrp.Velocity.Magnitude > 300 then break end
                         
-                        -- NoClip แบบ Loop เพื่อให้ตัวเราทะลุเป้าหมายได้ตลอด
+                        -- NoClip ตลอดเวลา
                         for _, part in pairs(char:GetDescendants()) do
                             if part:IsA("BasePart") then part.CanCollide = false end
                         end
 
-                        -- ใส่ความแรง 9e7 (90,000,000) เหมือนในไฟล์ yarhm
-                        hrp.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+                        -- ใส่แรงมหาศาลจากไฟล์ต้นฉบับ
+                        hrp.Velocity = Vector3.new(9e7, 9e7, 9e7)
                         hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
                         
-                        -- การคำนวณตำแหน่งวาร์ปแบบหมุนรอบตัว (Orbit)
-                        angle = angle + 100 -- เพิ่มมุมหมุนให้เร็วขึ้น
-                        local radius = 0.5 
-                        -- สลับตำแหน่ง X และ Z เพื่อสร้างวงจรการสะบัด
-                        local offset = Vector3.new(math.cos(math.rad(angle)) * radius, -1.2, math.sin(math.rad(angle)) * radius)
+                        -- 1. คำนวณการบินวนเป็นวงกลม (Orbit)
+                        orbitAngle = orbitAngle + 0.5 -- ความเร็วในการวนรอบเป้าหมาย
+                        local radius = 2.5 -- ระยะห่างวงกลม (ปรับให้กว้างขึ้นเพื่อไม่ให้จมเท้า)
+                        local x = math.cos(orbitAngle) * radius
+                        local z = math.sin(orbitAngle) * radius
+                        local yOffset = math.sin(orbitAngle * 2) * 1.5 -- ทำให้บินขึ้นลงเป็นคลื่นด้วย
                         
-                        -- วาร์ปไปที่เป้าหมายพร้อมมุมหมุนที่เปลี่ยนไปตลอดเวลา
-                        hrp.CFrame = targetHrp.CFrame * CFrame.new(offset) * CFrame.Angles(math.rad(angle), math.rad(angle), math.rad(angle))
+                        -- 2. คำนวณการควงสว่าน (Self Spinning)
+                        rotAngle = rotAngle + 45 -- ความเร็วการหมุนตัวเราเอง
+                        
+                        -- 3. รวมร่าง CFrame: วาร์ปไปรอบเป้าหมาย + บินวน + ควงสว่านทุกแกน
+                        hrp.CFrame = targetHrp.CFrame 
+                                     * CFrame.new(x, yOffset, z) -- ตำแหน่งวงกลม
+                                     * CFrame.Angles(math.rad(rotAngle), math.rad(rotAngle), math.rad(rotAngle)) -- ควงสว่าน
                         
                         task.wait() 
                     end
                     
-                    -- หยุดแล้วคืนค่าเดิม
+                    -- คืนค่าเดิม
                     if hrp then
-                        hrp.Velocity = Vector3.new(0, 0, 0)
-                        hrp.RotVelocity = Vector3.new(0, 0, 0)
+                        hrp.Velocity = Vector3.zero
+                        hrp.RotVelocity = Vector3.zero
                         hrp.CFrame = originalCFrame
                         for _, part in pairs(char:GetDescendants()) do
                             if part:IsA("BasePart") then part.CanCollide = true end
