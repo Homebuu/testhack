@@ -526,7 +526,7 @@ FlingLuck:Toggle({
 
 FlingLuck:Toggle({
     Title = "Fling Player",
-    Desc = "ควงสว่านบินวนรอบตัวเป้าหมาย (9e7 Power)",
+    Desc = "เตะผู้เล่นออกจากแมพ > เลือกจากเมณูค้นหา Teleport",
     Value = false,
     Callback = function(state)
         flingEnabled = state
@@ -535,62 +535,50 @@ FlingLuck:Toggle({
         
         if flingEnabled then
             if selectedPlayer == "" or selectedPlayer == nil then
-                 WindUI:Notify({Title = "Error!", Content = "กรุณาเลือกผู้เล่นก่อน!", Type = "Error"})
+                WindUI:Notify({Title = "Error!", Content = "กรุณาเลือกผู้เล่นก่อน!", Type = "Error"})
                 return
             end
 
             local target = game.Players:FindFirstChild(selectedPlayer)
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                 local originalCFrame = hrp.CFrame
-                
-                task.spawn(function()
-                    local rotAngle = 0 -- สำหรับหมุนรอบตัวเอง
-                    local orbitAngle = 0 -- สำหรับบินวนรอบเป้าหมาย
-
-                    while flingEnabled and char and hrp and target and target.Character do
-                        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-                        if not targetHrp then break end
-
-                        if targetHrp.Velocity.Magnitude > 300 then break end
-                        
-                        -- NoClip ตลอดเวลา
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then part.CanCollide = false end
-                        end
-
-                        -- ใส่แรงมหาศาลจากไฟล์ต้นฉบับ
-                        hrp.Velocity = Vector3.new(9e7, 9e7, 9e7)
-                        hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
-                        
-                        -- 1. คำนวณการบินวนเป็นวงกลม (Orbit)
-                        orbitAngle = orbitAngle + 0.5 -- ความเร็วในการวนรอบเป้าหมาย
-                        local radius = 2.5 -- ระยะห่างวงกลม (ปรับให้กว้างขึ้นเพื่อไม่ให้จมเท้า)
-                        local x = math.cos(orbitAngle) * radius
-                        local z = math.sin(orbitAngle) * radius
-                        local yOffset = math.sin(orbitAngle * 2) * 1.5 -- ทำให้บินขึ้นลงเป็นคลื่นด้วย
-                        
-                        -- 2. คำนวณการควงสว่าน (Self Spinning)
-                        rotAngle = rotAngle + 45 -- ความเร็วการหมุนตัวเราเอง
-                        
-                        -- 3. รวมร่าง CFrame: วาร์ปไปรอบเป้าหมาย + บินวน + ควงสว่านทุกแกน
-                        hrp.CFrame = targetHrp.CFrame 
-                                     * CFrame.new(x, yOffset, z) -- ตำแหน่งวงกลม
-                                     * CFrame.Angles(math.rad(rotAngle), math.rad(rotAngle), math.rad(rotAngle)) -- ควงสว่าน
-                        
-                        task.wait() 
-                    end
-                    
-                    -- คืนค่าเดิม
-                    if hrp then
-                        hrp.Velocity = Vector3.zero
-                        hrp.RotVelocity = Vector3.zero
-                        hrp.CFrame = originalCFrame
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then part.CanCollide = true end
-                        end
-                    end
-                    WindUI:Notify({Title = "Success", Content = "Fling Finished", Type = "Success"})
-                end)
+					
+                -- [[ ส่วนหนึ่งของลูปในฟังก์ชัน Fling ]] --
+				task.spawn(function()
+				    local angle = 0 
+				    while flingEnabled and char and hrp and target and target.Character do
+				        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+				        if not targetHrp then break end
+				
+				        if targetHrp.AssemblyLinearVelocity.Magnitude > 300 then 
+				            break 
+				        end
+				        
+				 --       for _, part in pairs(char:GetDescendants()) do
+				     --       if part:IsA("BasePart") then part.CanCollide = false end
+				 --       end
+				
+				        hrp.Velocity = Vector3.new(0, 25000, 0) 
+					 	hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+				
+				        angle = angle + 0.8  -- ปรับความเร็วการหมุนที่นี่
+				        local radius = 0.8   -- ระยะห่าง (ยิ่งน้อยยิ่งชิดและแรง)
+				        local offset = Vector3.new(math.cos(angle) * radius, -1.2, math.sin(angle) * radius)
+				        
+				        hrp.CFrame = targetHrp.CFrame * CFrame.new(offset)
+				        
+				        task.wait() 
+				    end
+				    
+				    if hrp then
+				        hrp.Velocity = Vector3.zero
+				        hrp.RotVelocity = Vector3.zero
+				        hrp.CFrame = originalCFrame -- คืนตำแหน่งเดิม
+				  --      for _, part in pairs(char:GetDescendants()) do
+				     --       if part:IsA("BasePart") then part.CanCollide = true end
+				   --     end
+				    end
+				end)
             end
         end
     end
