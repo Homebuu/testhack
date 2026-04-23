@@ -265,11 +265,6 @@ local function toggleFly(state)
 end
 
 local function SHubFling(TargetPlayer)
-    local LP = game:GetService("Players").LocalPlayer
-    local Char = LP.Character
-    local Hum = Char and Char:FindFirstChildWhichIsA("Humanoid")
-    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
-
     if not (Char and Hum and Root) then return end
     local TCharacter = TargetPlayer.Character
     if not TCharacter then return end
@@ -318,16 +313,20 @@ local function SHubFling(TargetPlayer)
     Workspace.CurrentCamera.CameraSubject = Hum
    until Workspace.CurrentCamera.CameraSubject == Hum
     repeat
-        local cf = env.OldPos * CFrame.new(0, .5, 0)
-        Root.CFrame = cf
-        Char:SetPrimaryPartCFrame(cf)
-        Hum:ChangeState("GettingUp")
-        for _, part in ipairs(Char:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.Velocity, part.RotVelocity = Vector3.zero, Vector3.zero
-            end
-        end
-        task.wait()
+        -- 1. บังคับย้ายตำแหน่ง
+        Root.CFrame = env.OldPos
+        Char:SetPrimaryPartCFrame(env.OldPos)
+        
+        -- 2. ล้าง Velocity ทุกรอบที่วน (สำคัญมาก)
+        Root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        Root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+        Root.Velocity = Vector3.new(0, 0, 0)
+        Root.RotVelocity = Vector3.new(0, 0, 0)
+        
+        -- 3. บังคับให้ตัวละครลุกขึ้น
+        Hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        
+        task.wait(0.1) -- รอสั้นๆ ให้เกมอัปเดตตำแหน่ง
     until (Root.Position - env.OldPos.p).Magnitude < 5
 end
 
