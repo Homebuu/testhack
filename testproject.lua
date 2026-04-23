@@ -313,21 +313,19 @@ local function SHubFling(TargetPlayer)
     Workspace.CurrentCamera.CameraSubject = Hum
    until Workspace.CurrentCamera.CameraSubject == Hum
     repeat
-        -- 1. บังคับย้ายตำแหน่ง
-        Root.CFrame = env.OldPos
-        Char:SetPrimaryPartCFrame(env.OldPos)
-        
-        -- 2. ล้าง Velocity ทุกรอบที่วน (สำคัญมาก)
-        Root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        Root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-        Root.Velocity = Vector3.new(0, 0, 0)
-        Root.RotVelocity = Vector3.new(0, 0, 0)
-        
-        -- 3. บังคับให้ตัวละครลุกขึ้น
+        Root.CFrame = OldPos
+        Char:SetPrimaryPartCFrame(OldPos)
         Hum:ChangeState(Enum.HumanoidStateType.GettingUp)
         
-        task.wait(0.1) -- รอสั้นๆ ให้เกมอัปเดตตำแหน่ง
-    until (Root.Position - env.OldPos.p).Magnitude < 5
+        -- ล้างทุก part ในตัวให้หยุดนิ่ง
+        for _, part in ipairs(Char:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            end
+        end
+        task.wait()
+    until (Root.Position - OldPos.p).Magnitude < 5
 end
 
 -- [[ Tabs Setup ]] --
