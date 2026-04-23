@@ -320,8 +320,6 @@ local function SHubFling(TargetPlayer)
         for _, part in ipairs(Char:GetChildren()) do
             if part:IsA("BasePart") then
                 part.Velocity, part.RotVelocity = Vector3.zero, Vector3.zero
-				part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             end
         end
         task.wait()
