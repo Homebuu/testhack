@@ -76,7 +76,7 @@ local pDropdown = nil
 local lp = game.Players.LocalPlayer
 local rs = game:GetService("ReplicatedStorage")
 
-game:GetService("TextChatService"):WaitForChild("TextChannels"):WaitForChild("RBXGeneral"):SendAsync("KH NO.1, Enjoy Game <3")
+--game:GetService("TextChatService"):WaitForChild("TextChannels"):WaitForChild("RBXGeneral"):SendAsync("KH NO.1, Enjoy Game <3")
 
 if game.PlaceId == 142823291 then 
 	local remote = rs
