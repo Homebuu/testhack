@@ -264,6 +264,81 @@ local function toggleFly(state)
     end
 end
 
+local function SHubFling(TargetPlayer)
+    local Players = game:GetService("Players")
+    local Workspace = game:GetService("Workspace")
+    local LocalPlayer = Players.LocalPlayer
+    -- ตรวจสอบตัวแปร Character/Humanoid ของเรา
+    local Char = LocalPlayer.Character
+    local Hum = Char and Char:FindFirstChildWhichIsA("Humanoid")
+    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+    
+    if not (Char and Hum and Root) then return end
+    
+    local TCharacter = TargetPlayer.Character
+    if not TCharacter then return end
+    local THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
+    local TRootPart = THumanoid and THumanoid.RootPart
+    local THead = TCharacter:FindFirstChild("Head")
+    local Accessory = TCharacter:FindFirstChildOfClass("Accessory")
+    local Handle = Accessory and Accessory:FindFirstChild("Handle")
+    
+    local OldPos = Root.CFrame -- เก็บตำแหน่งเดิม
+    
+    repeat task.wait()
+        Workspace.CurrentCamera.CameraSubject = THead or Handle or THumanoid
+    until Workspace.CurrentCamera.CameraSubject == THead or Handle or THumanoid
+    
+    local function FPos(BasePart, Pos, Ang)
+        local targetCF = CFrame.new(BasePart.Position) * Pos * Ang
+        Root.CFrame = targetCF
+        Char:SetPrimaryPartCFrame(targetCF)
+        Root.Velocity = Vector3.new(9e7, 9e8, 9e7)
+        Root.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+    end
+    
+    local function SFBasePart(BasePart)
+        local start = tick()
+        local angle = 0
+        local timeout = 2.5 -- ตั้งค่า Timeout ได้ที่นี่
+        repeat
+            if Root and THumanoid then
+                angle += 100
+                for _, offset in ipairs{CFrame.new(0, 1.5, 0), CFrame.new(0, -1.5, 0), CFrame.new(2.25, 1.5, -2.25), CFrame.new(-2.25, -1.5, 2.25)} do
+                    FPos(BasePart, offset + THumanoid.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
+                    task.wait()
+                end
+            end
+        until BasePart.Velocity.Magnitude > 500 or tick() - start > timeout
+    end
+    
+    local BV = Instance.new("BodyVelocity")
+    BV.Name = "SeYyyVel!?"
+    BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+    BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    BV.Parent = Root
+    Hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+    
+    local target = TRootPart or THead or Handle
+    if target then SFBasePart(target) end
+    
+    BV:Destroy()
+    Hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+    
+    repeat task.wait()
+        Workspace.CurrentCamera.CameraSubject = Hum
+    until Workspace.CurrentCamera.CameraSubject == Hum
+    
+    -- วาร์ปกลับตำแหน่งเดิม
+    repeat
+        local cf = OldPos * CFrame.new(0, .5, 0)
+        Root.CFrame = cf
+        Char:SetPrimaryPartCFrame(cf)
+        Hum:ChangeState("GettingUp")
+        task.wait()
+    until (Root.Position - OldPos.p).Magnitude < 25
+end
+
 -- [[ Tabs Setup ]] --
 local MainTab = Window:Tab({ Title = "เมนูหลัก", Icon = "star" , Opened = true})
 local TeleportTab = Window:Tab({ Title = "เทเลพอร์ต", Icon = "navigation" })
@@ -471,123 +546,33 @@ FlingLuck:Toggle({
     Desc = "คนอื่นจะทะลุตัวคุณ ไม่สามารถ Fling คุณได้",
     Value = false,
     Callback = function(state)
-        _G.AntiFling = state
-        local lp = game.Players.LocalPlayer
-        local runService = game:GetService("RunService")
+        env.NoclipPlr = value
         
-        if state then
-            _G.AntiFlingConnection = runService.Stepped:Connect(function()
-                if not _G.AntiFling then 
-                    if _G.AntiFlingConnection then 
-                        _G.AntiFlingConnection:Disconnect() 
-                    end 
-                    return 
-                end
-                
-                local char = lp.Character
-                if char then
-                    for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
+        if not env.NoclipPlr then
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    for _, v in pairs(player.Character:GetDescendants()) do
+                        if v:IsA("BasePart") then
+                            v.CanCollide = true
                         end
                     end
                 end
-            end)
-            
-            task.spawn(function()
-                while _G.AntiFling do
-                    local char = lp.Character
-                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        if hrp.Velocity.Magnitude > 75 then
-                            hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0)
-                            hrp.RotVelocity = Vector3.zero
-                        end
-                    end
-                    task.wait(0.1)
-                end
-            end)
+            end
         else
-            if _G.AntiFlingConnection then
-                _G.AntiFlingConnection:Disconnect()
-                _G.AntiFlingConnection = nil
-            end
-            local char = lp.Character
-            if char then
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") and part.Name == "HumanoidRootPart" then
-                        part.CanCollide = true
+            task.spawn(function() 
+                while env.NoclipPlr do
+                    for _, player in pairs(Players:GetPlayers()) do
+                        if player ~= LocalPlayer and player.Character then
+                            for _, v in pairs(player.Character:GetDescendants()) do
+                                if v:IsA("BasePart") then
+                                    v.CanCollide = false
+                                end
+                            end
+                        end
                     end
+                    task.wait() 
                 end
-            end
-        end
-    end
-})
-
-FlingLuck:Toggle({
-    Title = "Fling Player V2",
-    Desc = "เตะผู้เล่นออกจากแมพ > เลือกจากเมนูค้นหา Teleport",
-    Value = false,
-    Callback = function(state)
-        flingEnabled = state
-        local char = lp.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        
-        if flingEnabled then
-            if selectedPlayer == "" or selectedPlayer == nil then
-                WindUI:Notify({Title = "Error!", Content = "กรุณาเลือกผู้เล่นก่อน!", Type = "Error"})
-                -- คืนสถานะ Toggle ให้เป็น false ถ้าไม่ได้เลือกคน
-                return
-            end
-
-            local target = game.Players:FindFirstChild(selectedPlayer)
-            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                local originalCFrame = hrp.CFrame
-                
-                task.spawn(function()
-				    local spinAngle = 0 
-				    local originalCFrame = hrp.CFrame
-				    
-				    -- สร้าง Force ล็อคตัวเราไม่ให้กระเด็น (Anti-Knockback)
-				    local stabilizer = Instance.new("BodyVelocity")
-				    stabilizer.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-				    stabilizer.Velocity = Vector3.new(0, 0, 0)
-				    stabilizer.Parent = hrp
-				
-				    while flingEnabled and char and hrp and target and target.Character do
-				        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-				        if not targetHrp then break end
-				
-				        -- ปิดการชนกันแบบ Real-time (ป้องกันตัวเรากระเด็น)
-				        for _, part in pairs(char:GetDescendants()) do
-				            if part:IsA("BasePart") then 
-				                part.CanCollide = false 
-				                part.Velocity = Vector3.new(9e7, 9e7, 9e7) -- ให้ Velocity ส่วนตัวสูงมากเพื่อดีดคนอื่น
-				            end
-				        end
-				        
-				        spinAngle = spinAngle + 0.8 -- ความเร็วหมุนพายุ
-				        
-				        -- ตำแหน่ง: ให้เราอยู่ตำแหน่งเดียวกับเขา แต่อยู่สูงกว่านิดเดียว (0.1) เพื่อให้ฟิสิกส์ขัดกัน
-				        -- มุม: หมุนติ้วๆ รอบแกน Y
-				        local rotation = CFrame.Angles(0, spinAngle * 25, 0) 
-				        hrp.CFrame = targetHrp.CFrame * rotation * CFrame.new(0, 0.1, 0)
-				        
-				        task.wait() 
-				    end
-				    
-				    -- Cleanup เมื่อปิดหรือเป้าหมายกระเด็นไปแล้ว
-				    if stabilizer then stabilizer:Destroy() end
-				    if hrp then
-				        hrp.Velocity = Vector3.zero
-				        hrp.RotVelocity = Vector3.zero
-				        hrp.CFrame = originalCFrame -- กลับมาที่เดิม
-				        for _, part in pairs(char:GetDescendants()) do
-				            if part:IsA("BasePart") then part.CanCollide = true end
-				        end
-				    end
-				end)
-            end
+            end)
         end
     end
 })
@@ -611,42 +596,9 @@ FlingLuck:Toggle({
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                 local originalCFrame = hrp.CFrame
 					
-                -- [[ ส่วนหนึ่งของลูปในฟังก์ชัน Fling ]] --
-				task.spawn(function()
-				    local angle = 0 
-				    while flingEnabled and char and hrp and target and target.Character do
-				        local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-				        if not targetHrp then break end
-				
-				        if targetHrp.AssemblyLinearVelocity.Magnitude > 300 then 
-				            break 
-				        end
-				        
-				 --       for _, part in pairs(char:GetDescendants()) do
-				     --       if part:IsA("BasePart") then part.CanCollide = false end
-				 --       end
-				
-				        hrp.Velocity = Vector3.new(0, 25000, 0) 
-					 	hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
-				
-				        angle = angle + 0.8  -- ปรับความเร็วการหมุนที่นี่
-				        local radius = 0.8   -- ระยะห่าง (ยิ่งน้อยยิ่งชิดและแรง)
-				        local offset = Vector3.new(math.cos(angle) * radius, -1.2, math.sin(angle) * radius)
-				        
-				        hrp.CFrame = targetHrp.CFrame * CFrame.new(offset)
-				        
-				        task.wait() 
-				    end
-				    
-				    if hrp then
-				        hrp.Velocity = Vector3.zero
-				        hrp.RotVelocity = Vector3.zero
-				        hrp.CFrame = originalCFrame -- คืนตำแหน่งเดิม
-				  --      for _, part in pairs(char:GetDescendants()) do
-				     --       if part:IsA("BasePart") then part.CanCollide = true end
-				   --     end
-				    end
-				end)
+                task.spawn(function()
+                    SHubFling(target)
+                end)
             end
         end
     end
@@ -913,6 +865,23 @@ if remote then
         end
     end)
 end
+local function getRoles()
+	local success, data = pcall(function()
+        return rs:FindFirstChild("GetPlayerData", true):InvokeServer()
+    end)
+    if not success or not data then 
+        return {} 
+    end
+
+    local roles = {}
+    for plr, plrData in pairs(data) do
+        if plrData and not plrData.Dead then
+            roles[plr] = plrData.Role
+        end
+    end
+    return roles
+end
+
 local function getMM2Role(v)
     if playerData and playerData[v.Name] then
         local data = playerData[v.Name]
@@ -1083,68 +1052,25 @@ murderermystery2:Toggle({
     Value = false,
     Callback = function(state)
         _G.AutoFlingMurderer = state
-        
         local lp = game.Players.LocalPlayer
         
         if state then
-            task.spawn(function()
+           task.spawn(function()
                 while _G.AutoFlingMurderer do
-                    task.wait(0.5)
                     
-                    local char = lp.Character
-                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                    if not hrp then continue end
-
-                    local targetPlayer = nil
-                    for _, v in pairs(game.Players:GetPlayers()) do
-                        if v == lp or not v.Character or not v.Character:FindFirstChild("HumanoidRootPart") then continue end
-                        
-                        local isMurd = false
-                        if _G.playerData and _G.playerData[v.Name] then
-                            if tostring(_G.playerData[v.Name].Role) == "Murderer" and not _G.playerData[v.Name].Dead then
-                                isMurd = true
-                            end
-                        elseif v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then
-                            isMurd = true
-                        end
-
-                        if isMurd then
-                            targetPlayer = v
+                    local Murderer = nil
+                    for plr, role in pairs(getRoles()) do
+                        if role == "Murderer" then
+                            Murderer = game:GetService("Players"):FindFirstChild(plr)
                             break
                         end
                     end
-
-                    if targetPlayer then
-                        local targetHrp = targetPlayer.Character.HumanoidRootPart
-                        local originalCFrame = hrp.CFrame
-                                                
-                        local startTime = tick()
-                        while _G.AutoFlingMurderer and targetHrp.Parent and (tick() - startTime < 3) do
-                            task.wait()
-                            
-                            for _, part in pairs(char:GetDescendants()) do
-                                if part:IsA("BasePart") then part.CanCollide = false end
-                            end
-
-                            hrp.Velocity = Vector3.new(0, 35000, 0)
-                            hrp.RotVelocity = Vector3.new(20000, 20000, 20000)
-									
-                            local jitter = Vector3.new(math.random(-2,2)/100, 0, math.random(-2,2)/100)
-                            hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
-
-                            if targetHrp.AssemblyLinearVelocity.Magnitude > 200 then break end
-                        end
-
-                        hrp.Velocity = Vector3.zero
-                        hrp.RotVelocity = Vector3.zero
-                        hrp.CFrame = originalCFrame
-                        
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then part.CanCollide = true end
-                        end
-                        
-                        task.wait(1.5)
+                    
+                    if Murderer and Murderer ~= game:GetService("Players").LocalPlayer then
+                        SHubFling(Murderer)
                     end
+                    
+                    task.wait(1) 
                 end
             end)
         end
@@ -1161,63 +1087,20 @@ murderermystery2:Toggle({
         
         if state then
             task.spawn(function()
-                while _G.AutoFlingMurderer do
-                    task.wait(0.5)
-                    
-                    local char = lp.Character
-                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                    if not hrp then continue end
-
-                    local targetPlayer = nil
-                    for _, v in pairs(game.Players:GetPlayers()) do
-                        if v == lp or not v.Character or not v.Character:FindFirstChild("HumanoidRootPart") then continue end
-                        
-                        local isMurd = false
-                        if _G.playerData and _G.playerData[v.Name] then
-                            if tostring(_G.playerData[v.Name].Role) == "Sheriff" and not _G.playerData[v.Name].Dead then
-                                isMurd = true
-                            end
-                        elseif v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun") then
-                            isMurd = true
-                        end
-
-                        if isMurd then
-                            targetPlayer = v
+                while _G.AutoFlingSheriff do
+                    local Sheriff = nil
+                    for plr, role in pairs(getRoles()) do
+                        if role == "Sheriff" then 
+                            Sheriff = game:GetService("Players"):FindFirstChild(plr)
                             break
                         end
                     end
-
-                    if targetPlayer then
-                        local targetHrp = targetPlayer.Character.HumanoidRootPart
-                        local originalCFrame = hrp.CFrame
-                                                
-                        local startTime = tick()
-                        while _G.AutoFlingMurderer and targetHrp.Parent and (tick() - startTime < 3) do
-                            task.wait()
-                            
-                            for _, part in pairs(char:GetDescendants()) do
-                                if part:IsA("BasePart") then part.CanCollide = false end
-                            end
-
-                            hrp.Velocity = Vector3.new(0, 35000, 0)
-                            hrp.RotVelocity = Vector3.new(20000, 20000, 20000)
-
-                            local jitter = Vector3.new(math.random(-2,2)/100, 0, math.random(-2,2)/100)
-                            hrp.CFrame = targetHrp.CFrame * CFrame.new(0, -1.5, 0) * CFrame.new(jitter)
-
-                            if targetHrp.AssemblyLinearVelocity.Magnitude > 200 then break end
-                        end
-
-                        hrp.Velocity = Vector3.zero
-                        hrp.RotVelocity = Vector3.zero
-                        hrp.CFrame = originalCFrame
-                        
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then part.CanCollide = true end
-                        end
-                        
-                        task.wait(1.5) -- พักก่อนเริ่มหาใหม่
+                    
+                    if Sheriff and Sheriff ~= game:GetService("Players").LocalPlayer then
+                        SHubFling(Sheriff)
                     end
+                    
+                    task.wait(1)
                 end
             end)
         end
