@@ -265,16 +265,7 @@ local function toggleFly(state)
 end
 
 local function SHubFling(TargetPlayer)
-    local Players = game:GetService("Players")
-    local Workspace = game:GetService("Workspace")
-    local LocalPlayer = Players.LocalPlayer
-    -- ตรวจสอบตัวแปร Character/Humanoid ของเรา
-    local Char = LocalPlayer.Character
-    local Hum = Char and Char:FindFirstChildWhichIsA("Humanoid")
-    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
-    
     if not (Char and Hum and Root) then return end
-    
     local TCharacter = TargetPlayer.Character
     if not TCharacter then return end
     local THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
@@ -282,13 +273,10 @@ local function SHubFling(TargetPlayer)
     local THead = TCharacter:FindFirstChild("Head")
     local Accessory = TCharacter:FindFirstChildOfClass("Accessory")
     local Handle = Accessory and Accessory:FindFirstChild("Handle")
-    
-    local OldPos = Root.CFrame -- เก็บตำแหน่งเดิม
-    
-    repeat task.wait()
-        Workspace.CurrentCamera.CameraSubject = THead or Handle or THumanoid
-    until Workspace.CurrentCamera.CameraSubject == THead or Handle or THumanoid
-    
+    env.OldPos = Root.CFrame
+     repeat task.wait()
+    Workspace.CurrentCamera.CameraSubject = THead or Handle or THumanoid
+     until Workspace.CurrentCamera.CameraSubject == THead or Handle or THumanoid
     local function FPos(BasePart, Pos, Ang)
         local targetCF = CFrame.new(BasePart.Position) * Pos * Ang
         Root.CFrame = targetCF
@@ -296,47 +284,46 @@ local function SHubFling(TargetPlayer)
         Root.Velocity = Vector3.new(9e7, 9e8, 9e7)
         Root.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
     end
-    
     local function SFBasePart(BasePart)
         local start = tick()
         local angle = 0
-        local timeout = 2.5 -- ตั้งค่า Timeout ได้ที่นี่
+        env.timeout = env.timeout or 2.5
         repeat
             if Root and THumanoid then
                 angle += 100
-                for _, offset in ipairs{CFrame.new(0, 1.5, 0), CFrame.new(0, -1.5, 0), CFrame.new(2.25, 1.5, -2.25), CFrame.new(-2.25, -1.5, 2.25)} do
+                for _, offset in ipairs{CFrame.new(0, 1.5, 0),CFrame.new(0, -1.5, 0),CFrame.new(2.25, 1.5, -2.25),CFrame.new(-2.25, -1.5, 2.25)} do
                     FPos(BasePart, offset + THumanoid.MoveDirection, CFrame.Angles(math.rad(angle), 0, 0))
                     task.wait()
                 end
             end
-        until BasePart.Velocity.Magnitude > 500 or tick() - start > timeout
+        until BasePart.Velocity.Magnitude > 500 or tick() - start > env.timeout
     end
-    
+    --Workspace.FallenPartsDestroyHeight = 1000
     local BV = Instance.new("BodyVelocity")
     BV.Name = "SeYyyVel!?"
     BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
     BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     BV.Parent = Root
     Hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-    
     local target = TRootPart or THead or Handle
     if target then SFBasePart(target) end
-    
     BV:Destroy()
-    Hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-    
-    repeat task.wait()
-        Workspace.CurrentCamera.CameraSubject = Hum
-    until Workspace.CurrentCamera.CameraSubject == Hum
-    
-    -- วาร์ปกลับตำแหน่งเดิม
+   Hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+   repeat task.wait()
+    Workspace.CurrentCamera.CameraSubject = Hum
+   until Workspace.CurrentCamera.CameraSubject == Hum
     repeat
-        local cf = OldPos * CFrame.new(0, .5, 0)
+        local cf = env.OldPos * CFrame.new(0, .5, 0)
         Root.CFrame = cf
         Char:SetPrimaryPartCFrame(cf)
         Hum:ChangeState("GettingUp")
+        for _, part in ipairs(Char:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.Velocity, part.RotVelocity = Vector3.zero, Vector3.zero
+            end
+        end
         task.wait()
-    until (Root.Position - OldPos.p).Magnitude < 25
+    until (Root.Position - env.OldPos.p).Magnitude < 25
 end
 
 -- [[ Tabs Setup ]] --
