@@ -328,7 +328,7 @@ local function SHubFling(TargetPlayer)
             end
         end
         task.wait()
-    until (Root.Position - env.OldPos.p).Magnitude < 25
+    until (Root.Position - env.OldPos.p).Magnitude < 5
 end
 
 -- [[ Tabs Setup ]] --
