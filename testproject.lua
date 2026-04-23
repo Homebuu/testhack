@@ -265,6 +265,11 @@ local function toggleFly(state)
 end
 
 local function SHubFling(TargetPlayer)
+    local LP = game:GetService("Players").LocalPlayer
+    local Char = LP.Character
+    local Hum = Char and Char:FindFirstChildWhichIsA("Humanoid")
+    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
+
     if not (Char and Hum and Root) then return end
     local TCharacter = TargetPlayer.Character
     if not TCharacter then return end
