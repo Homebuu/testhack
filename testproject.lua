@@ -313,19 +313,19 @@ local function SHubFling(TargetPlayer)
     Workspace.CurrentCamera.CameraSubject = Hum
    until Workspace.CurrentCamera.CameraSubject == Hum
     repeat
-        Root.CFrame = OldPos
-        Char:SetPrimaryPartCFrame(OldPos)
-        Hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-        
-        -- ล้างทุก part ในตัวให้หยุดนิ่ง
+        local cf = env.OldPos * CFrame.new(0, .5, 0)
+        Root.CFrame = cf
+        Char:SetPrimaryPartCFrame(cf)
+        Hum:ChangeState("GettingUp")
         for _, part in ipairs(Char:GetChildren()) do
             if part:IsA("BasePart") then
-                part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                part.Velocity, part.RotVelocity = Vector3.zero, Vector3.zero
+				part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                 part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             end
         end
         task.wait()
-    until (Root.Position - OldPos.p).Magnitude < 5
+    until (Root.Position - env.OldPos.p).Magnitude < 25
 end
 
 -- [[ Tabs Setup ]] --
