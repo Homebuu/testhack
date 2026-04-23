@@ -533,20 +533,10 @@ FlingLuck:Toggle({
     Desc = "คนอื่นจะทะลุตัวคุณ ไม่สามารถ Fling คุณได้",
     Value = false,
     Callback = function(state)
-        env.NoclipPlr = value
+        env.NoclipPlr = state 
         
-        if not env.NoclipPlr then
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    for _, v in pairs(player.Character:GetDescendants()) do
-                        if v:IsA("BasePart") then
-                            v.CanCollide = true
-                        end
-                    end
-                end
-            end
-        else
-            task.spawn(function() 
+        if state then
+            task.spawn(function()
                 while env.NoclipPlr do
                     for _, player in pairs(Players:GetPlayers()) do
                         if player ~= LocalPlayer and player.Character then
@@ -557,7 +547,17 @@ FlingLuck:Toggle({
                             end
                         end
                     end
-                    task.wait() 
+                    task.wait(0.1)
+                end
+                
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        for _, v in pairs(player.Character:GetDescendants()) do
+                            if v:IsA("BasePart") then
+                                v.CanCollide = true
+                            end
+                        end
+                    end
                 end
             end)
         end
@@ -1038,29 +1038,19 @@ murderermystery2:Toggle({
     Desc = "วาร์ปไปสะบัดฆาตกรให้กระเด็น",
     Value = false,
     Callback = function(state)
-        _G.AutoFlingMurderer = state
-        local lp = game.Players.LocalPlayer
-        
-        if state then
-           task.spawn(function()
-                while _G.AutoFlingMurderer do
-                    
-                    local Murderer = nil
-                    for plr, role in pairs(getRoles()) do
-                        if role == "Murderer" then
-                            Murderer = game:GetService("Players"):FindFirstChild(plr)
-                            break
-                        end
-                    end
-                    
-                    if Murderer and Murderer ~= game:GetService("Players").LocalPlayer then
-                        SHubFling(Murderer)
-                    end
-                    
-                    task.wait(1) 
-                end
-            end)
-        end
+		local Murderer = nil
+		for plr, role in pairs(getRoles()) do
+			if role == "Murderer" then
+				Murderer = Players:FindFirstChild(plr)
+				break
+			end
+		end
+            
+		if Murderer and Murderer ~= LocalPlayer then
+			SHubFling(Murderer)
+		end
+            
+        task.wait(1) 
     end
 })
 murderermystery2:Toggle({
@@ -1068,29 +1058,16 @@ murderermystery2:Toggle({
     Desc = "วาร์ปไปสะบัดนายอำเภอให้กระเด็น",
     Value = false,
     Callback = function(state)
-        _G.AutoFlingMurderer = state
-        
-        local lp = game.Players.LocalPlayer
-        
-        if state then
-            task.spawn(function()
-                while _G.AutoFlingSheriff do
-                    local Sheriff = nil
-                    for plr, role in pairs(getRoles()) do
-                        if role == "Sheriff" then 
-                            Sheriff = game:GetService("Players"):FindFirstChild(plr)
-                            break
-                        end
-                    end
-                    
-                    if Sheriff and Sheriff ~= game:GetService("Players").LocalPlayer then
-                        SHubFling(Sheriff)
-                    end
-                    
-                    task.wait(1)
-                end
-            end)
-        end
+		local Target = nil
+		for plr, role in getRoles() do
+			if role == "Sheriff" or role == "Hero" then
+				Target = Players:FindFirstChild(plr)
+				break
+			end
+		end
+		if Target and Target ~= LocalPlayer then
+		    SHubFling(Target)
+		end
     end
 })
 local killAllConnection = nil
