@@ -3,7 +3,7 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 if not game:IsLoaded() then
     game.Loaded:Wait() 
 end
-task.wait(math.random(5, 10)) 
+task.wait(math.random(1, 5)) 
 
 -- [[ Services & Variables ]] --
 local Players = game:GetService("Players")
